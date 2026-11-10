@@ -1,0 +1,9 @@
+# Everything is checked out with LF, whatever the host's core.autocrlf says:
+# the Postgres init script runs inside a Linux container, where a CRLF line
+# ending turns "#!/bin/sh" into a missing interpreter.
+* text=auto eol=lf
+
+*.ico binary
+*.png binary
+*.woff binary
+*.woff2 binary
