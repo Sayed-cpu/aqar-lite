@@ -15,6 +15,13 @@
       "when": 1794337244881,
       "tag": "0001_app_role_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794337455453,
+      "tag": "0002_login_attempt_slot",
+      "breakpoints": true
     }
   ]
 }

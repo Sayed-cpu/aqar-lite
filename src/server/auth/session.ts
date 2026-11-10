@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { createHash, randomBytes } from "node:crypto";
 import { SESSION_TTL_SECONDS } from "@/lib/session-cookie";
 import type { Role } from "@/lib/roles";
-import { getDb } from "../db/client";
+import { getDb, type Tx } from "../db/client";
 import { companies, sessions, users } from "../db/schema";
 
 const SESSION_TTL_MS = SESSION_TTL_SECONDS * 1000;
@@ -32,12 +32,11 @@ export function hashSessionToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export async function createSession(userId: string): Promise<{ token: string; expiresAt: Date }> {
+/** Takes the caller's transaction so the session commits with its audit row. */
+export async function createSession(tx: Tx, userId: string): Promise<{ token: string; expiresAt: Date }> {
   const token = generateSessionToken();
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
-  await getDb()
-    .insert(sessions)
-    .values({ id: hashSessionToken(token), userId, expiresAt });
+  await tx.insert(sessions).values({ id: hashSessionToken(token), userId, expiresAt });
   return { token, expiresAt };
 }
 
@@ -85,6 +84,6 @@ export async function validateSessionToken(token: string): Promise<SessionUser |
 }
 
 /** Logout: the row goes, so the token is dead even if the cookie survives. */
-export async function invalidateSession(sessionId: string): Promise<void> {
-  await getDb().delete(sessions).where(eq(sessions.id, sessionId));
+export async function invalidateSession(tx: Tx, sessionId: string): Promise<void> {
+  await tx.delete(sessions).where(eq(sessions.id, sessionId));
 }
