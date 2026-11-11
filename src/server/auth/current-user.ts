@@ -24,6 +24,9 @@ export async function requireUser(): Promise<SessionUser> {
 /**
  * A page the role may not use is answered with a 404, not a 403: it does not
  * confirm to anyone that the page exists.
+ *
+ * Call it from the segment's layout.tsx. Inside a loading.tsx boundary the
+ * response is already streaming with a 200 and notFound() cannot change it.
  */
 export async function requirePermission(permission: Permission): Promise<SessionUser> {
   const session = await requireUser();
