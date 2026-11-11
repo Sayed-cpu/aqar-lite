@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: lint · typecheck · test · audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      # Integration tests start their own Postgres through Testcontainers;
+      # the hosted runner provides Docker.
+      - run: npm test
+      - run: npm audit --audit-level=high
+
+  compose:
+    name: docker compose up on a clean machine
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      # Exactly what a reviewer runs: no .env, no extra flags.
+      - run: docker compose up --build -d
+      - name: Wait for the app to report healthy
+        run: |
+          for _ in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/api/health; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: Migrations and seed finished cleanly
+        run: test "$(docker compose ps -a migrate --format '{{.ExitCode}}')" = "0"
+      - name: The login page renders in Arabic
+        run: curl -fsS http://localhost:3000/login | grep -q 'lang="ar" dir="rtl"'
+      - name: Logs
+        if: failure()
+        run: docker compose logs
+      - if: always()
+        run: docker compose down -v
