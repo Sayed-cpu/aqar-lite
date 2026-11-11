@@ -13,6 +13,17 @@ export const AUDIT_ACTIONS = [
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
+/** Display names for metadata keys and coded values; unknown ones show raw. */
+export const AUDIT_METADATA_LABELS: Record<string, string> = {
+  email: "البريد",
+  reason: "السبب",
+};
+
+export const AUDIT_METADATA_VALUE_LABELS: Record<string, string> = {
+  invalid_credentials: "بيانات دخول غير صحيحة",
+  locked: "محاولات كثيرة (حظر مؤقت)",
+};
+
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "auth.login_succeeded": "تسجيل دخول",
   "auth.login_failed": "محاولة دخول فاشلة",

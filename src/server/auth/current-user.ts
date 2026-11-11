@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { can, type Permission } from "@/lib/permissions";
 import { SESSION_COOKIE_NAME, SESSION_COOKIE_OPTIONS } from "@/lib/session-cookie";
+import type { TenantCtx } from "../db/tenant";
 import { type SessionUser, validateSessionToken } from "./session";
 
 /** Resolved once per request, however many components ask. */
@@ -28,6 +29,11 @@ export async function requirePermission(permission: Permission): Promise<Session
   const session = await requireUser();
   if (!can(session.role, permission)) notFound();
   return session;
+}
+
+/** The only constructor of a TenantCtx from a request. */
+export function tenantOf(session: SessionUser): TenantCtx {
+  return { userId: session.userId, companyId: session.companyId, role: session.role };
 }
 
 export async function setSessionCookie(token: string, expiresAt: Date): Promise<void> {
