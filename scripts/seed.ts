@@ -81,7 +81,8 @@ async function seedUnitsAndClients(db: Db): Promise<void> {
 
       const [unitCount] = await tx.select({ n: count() }).from(units).where(eq(units.companyId, companyId));
       if ((unitCount?.n ?? 0) === 0) {
-        await tx.insert(units).values(entry.units.map((unit) => ({ ...unit, companyId })));
+        const stamp = listedOrder();
+        await tx.insert(units).values(entry.units.map((unit, i) => ({ ...unit, companyId, ...stamp(i) })));
         console.log(`seed: ${entry.units.length} units for ${entry.company}`);
       }
 
@@ -90,13 +91,32 @@ async function seedUnitsAndClients(db: Db): Promise<void> {
         if (!owner || !user.clients?.length) continue;
         const [clientCount] = await tx.select({ n: count() }).from(clients).where(eq(clients.ownerUserId, owner.id));
         if ((clientCount?.n ?? 0) > 0) continue;
-        await tx
-          .insert(clients)
-          .values(user.clients.map((client) => ({ ...client, ownerUserId: owner.id, companyId: owner.companyId })));
+        const stamp = listedOrder();
+        await tx.insert(clients).values(
+          user.clients.map((client, i) => ({
+            ...client,
+            ownerUserId: owner.id,
+            companyId: owner.companyId,
+            ...stamp(i),
+          })),
+        );
         console.log(`seed: ${user.clients.length} clients for ${user.email}`);
       }
     }
   });
+}
+
+/**
+ * Rows inserted in one statement share now(), which leaves "newest first" to
+ * the random id. A minute apart, the first one listed the newest, the lists
+ * read in the order the data file is written.
+ */
+function listedOrder(): (i: number) => { createdAt: Date; updatedAt: Date } {
+  const now = Date.now();
+  return (i) => {
+    const at = new Date(now - i * 60_000);
+    return { createdAt: at, updatedAt: at };
+  };
 }
 
 main().catch((err: unknown) => {

@@ -75,6 +75,12 @@ export default async function AuditPage({ searchParams }: PageProps<"/audit">) {
   );
 }
 
+const LABEL_ORDER = Object.keys(AUDIT_METADATA_LABELS);
+const labelOrder = (key: string) => {
+  const index = LABEL_ORDER.indexOf(key);
+  return index === -1 ? LABEL_ORDER.length : index;
+};
+
 function metadataValue(key: string, value: unknown): string {
   if (typeof value !== "string") return String(value);
   if (AUDIT_MONEY_KEYS.has(key)) {
@@ -87,7 +93,8 @@ function metadataValue(key: string, value: unknown): string {
 // Rendered as text nodes only: metadata can hold what a user typed (an
 // attempted email, a unit number), and React escapes it.
 function MetadataList({ metadata }: { metadata: AuditMetadata }) {
-  const entries = Object.entries(metadata);
+  // jsonb stores keys in its own order; show them in the order labelled.
+  const entries = Object.entries(metadata).sort(([a], [b]) => labelOrder(a) - labelOrder(b));
   if (entries.length === 0) return <span>—</span>;
   return (
     <dl className="space-y-0.5">
