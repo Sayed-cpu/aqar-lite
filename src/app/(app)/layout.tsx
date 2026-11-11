@@ -11,6 +11,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   const links = [
     { href: "/", label: "الرئيسية", visible: true },
+    { href: "/units", label: "الوحدات", visible: true },
+    { href: "/clients", label: user.role === "sales_rep" ? "عملائي" : "العملاء", visible: true },
     { href: "/audit", label: "سجل التدقيق", visible: can(user.role, "audit:read") },
   ] as const;
 
