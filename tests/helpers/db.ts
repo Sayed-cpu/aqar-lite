@@ -23,7 +23,7 @@ export async function closeOwnerDb(): Promise<void> {
 /** TRUNCATE fires no row triggers, so the append-only audit log resets too. */
 export async function resetDatabase(): Promise<void> {
   await ownerDb().execute(
-    sql`truncate table audit_logs, sessions, login_attempts, users, companies restart identity cascade`,
+    sql`truncate table clients, units, audit_logs, sessions, login_attempts, users, companies restart identity cascade`,
   );
 }
 
@@ -31,7 +31,7 @@ export const TEST_PASSWORD = "correct horse battery staple";
 
 let cachedHash: Promise<string> | undefined;
 
-type TestUser = { id: string; email: string; companyId: string; role: Role; name: string };
+export type TestUser = { id: string; email: string; companyId: string; role: Role; name: string };
 
 export type Fixture = {
   companyA: { id: string; name: string };
@@ -39,10 +39,12 @@ export type Fixture = {
   managerA: TestUser;
   accountantA: TestUser;
   repA: TestUser;
+  repA2: TestUser;
   managerB: TestUser;
+  repB: TestUser;
 };
 
-/** Two companies, with users of every role in A and a manager in B. */
+/** Two companies: every role in A, with two reps; a manager and a rep in B. */
 export async function seedTwoCompanies(): Promise<Fixture> {
   // One Argon2 hash shared by every fixture user keeps the suite fast.
   cachedHash ??= hashPassword(TEST_PASSWORD);
@@ -70,10 +72,63 @@ export async function seedTwoCompanies(): Promise<Fixture> {
     managerA: await make(companyA.id, "manager@a.test", "manager", "مدير أ"),
     accountantA: await make(companyA.id, "accountant@a.test", "accountant", "محاسب أ"),
     repA: await make(companyA.id, "rep@a.test", "sales_rep", "مندوب أ"),
+    repA2: await make(companyA.id, "rep2@a.test", "sales_rep", "مندوب أ2"),
     managerB: await make(companyB.id, "manager@b.test", "manager", "مدير ب"),
+    repB: await make(companyB.id, "rep@b.test", "sales_rep", "مندوب ب"),
   };
 }
 
 export function ctxOf(user: TestUser): TenantCtx {
   return { userId: user.id, companyId: user.companyId, role: user.role };
+}
+
+// Unique unit numbers and phones within a test run.
+let fixtureCounter = 0;
+
+type UnitRow = typeof schema.units.$inferInsert;
+
+/** A unit written as the owner, bypassing RLS but not the lifecycle trigger. */
+export async function insertUnit(
+  companyId: string,
+  overrides: Partial<Omit<UnitRow, "companyId">> = {},
+): Promise<{ id: string }> {
+  const [unit] = await ownerDb()
+    .insert(schema.units)
+    .values({
+      companyId,
+      project: "مشروع الاختبار",
+      number: `U-${++fixtureCounter}`,
+      type: "apartment",
+      areaSqm: "120.00",
+      rooms: 3,
+      priceHalalas: 100_000_000n,
+      ...overrides,
+    })
+    .returning({ id: schema.units.id });
+  if (!unit) throw new Error("fixture unit not created");
+  return unit;
+}
+
+/** Moves a unit along its lifecycle as the owner; the trigger still applies. */
+export async function setUnitStatus(unitId: string, status: "available" | "reserved" | "sold"): Promise<void> {
+  await ownerDb().update(schema.units).set({ status }).where(sql`${schema.units.id} = ${unitId}`);
+}
+
+export async function insertClient(
+  owner: TestUser,
+  overrides: Partial<Pick<typeof schema.clients.$inferInsert, "name" | "phone" | "notes">> = {},
+): Promise<{ id: string }> {
+  const [client] = await ownerDb()
+    .insert(schema.clients)
+    .values({
+      companyId: owner.companyId,
+      ownerUserId: owner.id,
+      name: "عميل الاختبار",
+      phone: `05${10_000_000 + ++fixtureCounter}`,
+      notes: "",
+      ...overrides,
+    })
+    .returning({ id: schema.clients.id });
+  if (!client) throw new Error("fixture client not created");
+  return client;
 }
