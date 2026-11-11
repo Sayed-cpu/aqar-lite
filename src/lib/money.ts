@@ -12,15 +12,19 @@ const HALALAS_PER_RIYAL = 100n;
 // database's bigint.
 const SAR_PATTERN = /^(\d{1,12})(?:\.(\d{1,2}))?$/;
 
+/** Arabic-Indic and Persian digits as 0–9; everything else untouched. */
+export function toLatinDigits(input: string): string {
+  return input
+    .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 0x06f0));
+}
+
 /**
  * Accepts what people actually type into an Arabic form: Arabic-Indic or
  * Persian digits, the Arabic decimal separator, and thousands separators.
  */
 export function normalizeNumeral(input: string): string {
-  return input
-    .trim()
-    .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 0x0660))
-    .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 0x06f0))
+  return toLatinDigits(input.trim())
     .replace(/٫/g, ".")
     .replace(/[,٬\s]/g, "");
 }
