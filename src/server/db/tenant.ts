@@ -21,10 +21,18 @@ export async function setTransactionCompany(tx: Tx, companyId: string): Promise<
 
 /**
  * Every tenant-scoped read and write runs in here. Queries still filter by
- * ctx.companyId themselves; the database policy is the net under that.
+ * company (and by owner, for a rep's clients) themselves; the database
+ * policies, which read these three settings, are the net under that.
  */
 export function withTenant<T>(ctx: TenantCtx, fn: (tx: Tx) => Promise<T>): Promise<T> {
-  return withCompany(ctx.companyId, fn);
+  return getDb().transaction(async (tx) => {
+    await tx.execute(sql`
+      select set_config('app.company_id', ${ctx.companyId}, true),
+             set_config('app.user_id', ${ctx.userId}, true),
+             set_config('app.role', ${ctx.role}, true)
+    `);
+    return fn(tx);
+  });
 }
 
 /**
