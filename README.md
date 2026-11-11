@@ -41,6 +41,8 @@ docker compose up --build
 
 ### التطوير المحلي
 
+يحتاج **Node 22.19 أو أحدث** (مكتبة `undici` التي تعتمد عليها Testcontainers تشترط ذلك).
+
 ```bash
 cp .env.example .env
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db   # قاعدة البيانات على 127.0.0.1:5433
@@ -57,9 +59,12 @@ npm run typecheck
 npm run test:unit
 npm run test:integration   # يحتاج Docker: يشغّل Postgres حقيقي عبر Testcontainers
 npm audit --audit-level=high
+scripts/smoke.sh           # على نظام شغّال: يدخل عبر نموذج الدخول الحقيقي ويفحص الاستجابة نفسها
 ```
 
-الـ CI (`.github/workflows/ci.yml`) يشغّل كل ما سبق. وفوقه وظيفة تشغّل `docker compose up --build` على جهاز نظيف وتتحقق من `/api/health` وصفحة الدخول.
+`scripts/smoke.sh` يفحص ما لا يظهر إلا على مستوى HTTP: أكواد الحالة، وخصائص الكوكي، ورفض الجلسة بعد الخروج، وأن المندوب يحصل على 404 حقيقي في سجل التدقيق.
+
+الـ CI (`.github/workflows/ci.yml`) يشغّل كل ما سبق. وفوقه وظيفة تشغّل `docker compose up --build` على جهاز نظيف، ثم تنتظر `/api/health` وتشغّل `scripts/smoke.sh`.
 
 ---
 
@@ -110,6 +115,7 @@ tests/          unit و integration
 - **مصدر واحد:** [`src/lib/permissions.ts`](src/lib/permissions.ts)، منقول من جدول الأدوار في المتطلبات. اختبار يعيد صياغة كل سطر من الجدول ويقارنه به.
 - **Server Actions:** تُبنى كلها بـ `createAction`، وتمر بالترتيب: الجلسة ← الصلاحية ← مخطط الإدخال ← المعالج داخل `withTenant`.
 - **الصفحات:** تستدعي `requirePermission`. الدور غير المسموح له يحصل على 404 وليس 403، فلا يتأكد حتى أن الصفحة موجودة.
+  - الفحص يكون في `layout.tsx` الخاص بالقسم، لا في الصفحة وحدها. الصفحة داخل حدود `loading.tsx`، وعندها تكون الاستجابة بدأت بـ 200، فيظهر محتوى 404 تحت حالة 200. `scripts/smoke.sh` يفحص الحالة نفسها.
 - **`proxy.ts` لا يتحقق من شيء.** الاعتماد على الـ middleware وحده هو بالضبط ما تجاوزته CVE-2025-29927.
 
 ---

@@ -50,6 +50,8 @@ jobs:
         run: test "$(docker compose ps -a migrate --format '{{.ExitCode}}')" = "0"
       - name: The login page renders in Arabic
         run: curl -fsS http://localhost:3000/login | grep -q 'lang="ar" dir="rtl"'
+      - name: Smoke test over HTTP (login, roles, cookie flags, logout)
+        run: bash scripts/smoke.sh
       - name: Logs
         if: failure()
         run: docker compose logs
