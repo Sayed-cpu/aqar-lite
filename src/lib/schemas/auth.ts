@@ -16,3 +16,10 @@ export const loginInputSchema = z.strictObject({
 });
 
 export type LoginInput = z.infer<typeof loginInputSchema>;
+
+/** What the login form gets back. The password is never echoed. */
+export type LoginFormState = {
+  email: string;
+  message?: string;
+  fieldErrors?: Partial<Record<keyof LoginInput, string[]>>;
+};
