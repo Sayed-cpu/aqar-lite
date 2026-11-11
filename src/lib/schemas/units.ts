@@ -49,3 +49,22 @@ export const unitListQuerySchema = z.object({
 });
 
 export type UnitListQuery = z.output<typeof unitListQuerySchema>;
+
+type PriceFilterErrors = { minPrice?: string[]; maxPrice?: string[] };
+
+/**
+ * The list ignores a price filter it cannot read, and says so next to the
+ * field, so a typo is never mistaken for "no matching units".
+ */
+export function unitFilterErrors(raw: Record<string, unknown>, query: UnitListQuery): PriceFilterErrors {
+  const typed = (value: unknown) => typeof value === "string" && value.trim() !== "";
+  const unreadable = ["أدخل مبلغًا صحيحًا، مثل 500000 — تم تجاهل هذا الفلتر"];
+
+  const errors: PriceFilterErrors = {};
+  if (typed(raw.minPrice) && query.minPrice === undefined) errors.minPrice = unreadable;
+  if (typed(raw.maxPrice) && query.maxPrice === undefined) errors.maxPrice = unreadable;
+  if (query.minPrice !== undefined && query.maxPrice !== undefined && query.minPrice > query.maxPrice) {
+    errors.maxPrice = ["أعلى سعر أقل من أقل سعر"];
+  }
+  return errors;
+}
