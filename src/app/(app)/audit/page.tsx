@@ -4,8 +4,10 @@ import {
   AUDIT_ACTION_LABELS,
   AUDIT_METADATA_LABELS,
   AUDIT_METADATA_VALUE_LABELS,
+  AUDIT_MONEY_KEYS,
 } from "@/lib/audit-actions";
 import { formatDateTime } from "@/lib/format";
+import { formatSar, parseSar } from "@/lib/money";
 import { auditListQuerySchema } from "@/lib/schemas/audit";
 import type { AuditMetadata } from "@/server/db/schema";
 import { listAuditLogs } from "@/server/audit/audit.service";
@@ -73,8 +75,17 @@ export default async function AuditPage({ searchParams }: PageProps<"/audit">) {
   );
 }
 
+function metadataValue(key: string, value: unknown): string {
+  if (typeof value !== "string") return String(value);
+  if (AUDIT_MONEY_KEYS.has(key)) {
+    const amount = parseSar(value);
+    if (amount !== null) return formatSar(amount);
+  }
+  return AUDIT_METADATA_VALUE_LABELS[value] ?? value;
+}
+
 // Rendered as text nodes only: metadata can hold what a user typed (an
-// attempted email), and React escapes it.
+// attempted email, a unit number), and React escapes it.
 function MetadataList({ metadata }: { metadata: AuditMetadata }) {
   const entries = Object.entries(metadata);
   if (entries.length === 0) return <span>—</span>;
@@ -84,7 +95,7 @@ function MetadataList({ metadata }: { metadata: AuditMetadata }) {
         <div key={key} className="flex gap-1">
           <dt className="text-slate-400">{AUDIT_METADATA_LABELS[key] ?? key}:</dt>
           <dd className="break-all">
-            {typeof value === "string" ? (AUDIT_METADATA_VALUE_LABELS[value] ?? value) : String(value)}
+            {metadataValue(key, value)}
           </dd>
         </div>
       ))}

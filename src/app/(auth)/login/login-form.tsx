@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { loginAction } from "@/app/actions/auth";
-import { FormField } from "@/components/form-field";
+import { FormField, FormMessage } from "@/components/form-field";
 import type { LoginFormState } from "@/lib/schemas/auth";
 
 const initialState: LoginFormState = { email: "" };
@@ -12,11 +12,7 @@ export function LoginForm() {
 
   return (
     <form action={formAction} noValidate className="space-y-4">
-      {state.message ? (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {state.message}
-        </div>
-      ) : null}
+      <FormMessage message={state.message} />
 
       <FormField
         label="البريد الإلكتروني"
