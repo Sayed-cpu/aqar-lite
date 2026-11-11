@@ -1,7 +1,8 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
+import { can, type Permission } from "@/lib/permissions";
 import { SESSION_COOKIE_NAME, SESSION_COOKIE_OPTIONS } from "@/lib/session-cookie";
 import { type SessionUser, validateSessionToken } from "./session";
 
@@ -16,6 +17,16 @@ export const getCurrentSession = cache(async (): Promise<SessionUser | null> => 
 export async function requireUser(): Promise<SessionUser> {
   const session = await getCurrentSession();
   if (!session) redirect("/login");
+  return session;
+}
+
+/**
+ * A page the role may not use is answered with a 404, not a 403: it does not
+ * confirm to anyone that the page exists.
+ */
+export async function requirePermission(permission: Permission): Promise<SessionUser> {
+  const session = await requireUser();
+  if (!can(session.role, permission)) notFound();
   return session;
 }
 
