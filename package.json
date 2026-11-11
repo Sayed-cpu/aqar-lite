@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx --conditions=react-server scripts/migrate.ts"
+    "db:migrate": "tsx --conditions=react-server scripts/migrate.ts",
+    "db:seed": "tsx --conditions=react-server scripts/seed.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
