@@ -1,9 +1,113 @@
 @import "tailwindcss";
 
-@theme inline {
-  --font-sans: "IBM Plex Sans Arabic", system-ui, "Segoe UI", Tahoma, sans-serif;
+/*
+ * Design tokens: every colour the interface uses is defined here and nowhere
+ * else.
+ *
+ * Contrast (WCAG 2.x), checked for each pair the UI uses:
+ *   ink / ink-muted / ink-subtle on canvas, surface, subtle ...... ≥ 5.3:1
+ *   white on primary-700 · 800 · 900 ............................ ≥ 9.1:1
+ *   status text on its own soft background ...................... ≥ 6.1:1
+ *   accent-300 and primary-100 · 200 · 300 on primary-900 ....... ≥ 6.0:1
+ *   field (input borders) on surface ............................ 3.6:1 (non-text ≥ 3)
+ */
+@theme {
+  --color-white: #ffffff;
+
+  /* Brand: a deep, formal green. 700 for actions, 900 for the sidebar. */
+  --color-primary-50: #eef6f2;
+  --color-primary-100: #d5ebe0;
+  --color-primary-200: #a9d5c0;
+  --color-primary-300: #78b99d;
+  --color-primary-400: #469a77;
+  --color-primary-500: #267d5b;
+  --color-primary-600: #196548;
+  --color-primary-700: #11523b;
+  --color-primary-800: #0c412f;
+  --color-primary-900: #0a3326;
+  --color-primary-950: #06221a;
+
+  /* Accent: a soft gold, for emphasis only — never for body text on white. */
+  --color-accent-50: #fbf7eb;
+  --color-accent-100: #f5eacd;
+  --color-accent-200: #ead49c;
+  --color-accent-300: #dcbb6b;
+  --color-accent-400: #c9a04a;
+  --color-accent-500: #b5872d;
+  --color-accent-600: #94691f;
+  --color-accent-700: #74521a;
+
+  /* Neutrals, slightly warm to sit with the gold. */
+  --color-canvas: #f5f4ef; /* page background */
+  --color-surface: #ffffff; /* cards, tables, inputs */
+  --color-subtle: #f9f8f4; /* table headers, quiet fills */
+  --color-line: #e3dfd5; /* borders and dividers */
+  --color-field: #8b8679; /* input borders: 3:1 against surface */
+  --color-ink: #1a211e; /* main text */
+  --color-ink-muted: #4a524e; /* secondary text */
+  --color-ink-subtle: #5f6661; /* hints, captions */
+
+  /* Status: text, soft background, border. Each badge also carries an icon. */
+  --color-success: #135f3d;
+  --color-success-soft: #eaf6ef;
+  --color-success-line: #a6d6bc;
+  --color-warning: #7f5100;
+  --color-warning-soft: #fdf3df;
+  --color-warning-line: #eccb85;
+  --color-danger: #a3241f;
+  --color-danger-soft: #fdecea;
+  --color-danger-line: #f0b5b0;
+  --color-info: #1d4b8a;
+  --color-info-soft: #eaf1fb;
+  --color-info-line: #b2c8ec;
+  --color-neutral: #474f4b;
+  --color-neutral-soft: #f0efea;
+  --color-neutral-line: #d3cfc4;
 }
 
-body {
-  @apply bg-slate-50 text-slate-900 font-sans;
+/* The font variables are set on <html> by next/font (src/app/fonts.ts). */
+@theme inline {
+  --font-sans: var(--font-plex-arabic), var(--font-plex-latin), system-ui, "Segoe UI", Tahoma, sans-serif;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --focus-ring: var(--color-primary-600);
+  }
+
+  body {
+    @apply bg-canvas font-sans text-ink;
+  }
+
+  /* One focus indicator for everything that can take focus. */
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* Numbers line up in columns. */
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: var(--color-accent-200);
+    color: var(--color-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* On the dark green of the sidebar, focus shows in gold. */
+@utility on-dark {
+  --focus-ring: var(--color-accent-300);
 }
