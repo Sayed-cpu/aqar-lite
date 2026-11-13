@@ -36,15 +36,25 @@ test("a rep reserves a unit and drafts its contract; the accountant approves it 
   const contractUrl = new URL(page.url()).pathname;
   await logout(page);
 
-  // The accountant: approve, then record the down payment.
+  // The accountant: approve, then record the down payment. Both cannot be
+  // undone, so each asks first in a dialog; cancelling sends nothing.
   await login(page, "accountant@ofuq.test");
   await page.goto(contractUrl);
   await page.getByRole("button", { name: "اعتماد العقد" }).click();
+  const approval = page.getByRole("dialog", { name: "تأكيد اعتماد العقد" });
+  await approval.getByRole("button", { name: "إلغاء" }).click();
+  await expect(approval).toBeHidden();
+  await expect(page.getByText("مسودة", { exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: "اعتماد العقد" }).click();
+  await approval.getByRole("button", { name: "تأكيد الاعتماد" }).click();
   await expect(page.getByText("تم اعتماد العقد، وأصبحت الوحدة مباعة.")).toBeVisible();
 
   await page.getByLabel("المبلغ المستلم (ر.س)").fill("100000");
+  await page.getByRole("button", { name: "تسجيل الدفعة" }).click();
+  const payment = page.getByRole("dialog", { name: "تأكيد تسجيل دفعة" });
+  await expect(payment).toContainText("100,000.00");
   // A double click sends the form at most twice with one idempotency key.
-  await page.getByRole("button", { name: "تسجيل الدفعة" }).dblclick();
+  await payment.getByRole("button", { name: "تأكيد التسجيل" }).dblclick();
   await expect(page.getByText(/^تم تسجيل الدفعة\.|سُجِّلت من قبل/)).toBeVisible();
 
   const downPayment = page.getByRole("row", { name: /الدفعة الأولى/ });

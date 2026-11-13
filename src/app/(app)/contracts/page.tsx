@@ -1,11 +1,20 @@
+import { FileText, Timer, TimerOff } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { ContractStatusBadge } from "@/components/badges";
+import { DataTable, TBody, Td, Th, THead, Tr } from "@/components/data-table";
 import { Pagination } from "@/components/pagination";
-import { ContractStatusBadge } from "@/components/sales-badges";
-import { EmptyState, PageHeader, TableSkeleton } from "@/components/ui";
+import {
+  buttonClass,
+  EmptyState,
+  FilterTabs,
+  Money,
+  PageHeader,
+  ResultCount,
+  TableSkeleton,
+} from "@/components/ui";
 import { formatDateTime } from "@/lib/format";
-import { formatSar } from "@/lib/money";
 import { CONTRACT_STATUS_LABELS, CONTRACT_STATUSES } from "@/lib/sales";
 import { type ContractListQuery, contractListQuerySchema } from "@/lib/schemas/sales";
 import { requireUser, tenantOf } from "@/server/auth/current-user";
@@ -29,7 +38,7 @@ export default async function ContractsPage({ searchParams }: PageProps<"/contra
   const tabs = [undefined, ...CONTRACT_STATUSES] as const;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title={isRep ? "عقودي" : "العقود"}
         description={
@@ -41,25 +50,16 @@ export default async function ContractsPage({ searchParams }: PageProps<"/contra
         }
       />
 
-      <nav aria-label="تصفية العقود" className="flex flex-wrap gap-2 text-sm">
-        {tabs.map((status) => {
-          const active = query.status === status;
-          return (
-            <Link
-              key={status ?? "all"}
-              href={contractsHref({ ...query, status }, 1)}
-              aria-current={active ? "page" : undefined}
-              className={`rounded-full border px-3 py-1 ${
-                active ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-300 bg-white text-slate-700"
-              }`}
-            >
-              {status ? CONTRACT_STATUS_LABELS[status] : "الكل"}
-            </Link>
-          );
-        })}
-      </nav>
+      <FilterTabs
+        label="تصفية العقود"
+        tabs={tabs.map((status) => ({
+          href: contractsHref({ ...query, status }, 1),
+          label: status ? CONTRACT_STATUS_LABELS[status] : "الكل",
+          current: query.status === status,
+        }))}
+      />
 
-      <Suspense key={contractsHref(query)} fallback={<TableSkeleton />}>
+      <Suspense key={contractsHref(query)} fallback={<TableSkeleton label="جارٍ تحميل العقود…" />}>
         <ContractResults ctx={tenantOf(session)} query={query} isRep={isRep} />
       </Suspense>
     </div>
@@ -70,51 +70,83 @@ async function ContractResults({ ctx, query, isRep }: { ctx: TenantCtx; query: C
   const result = await listContracts(ctx, query);
 
   if (result.items.length === 0) {
-    return <EmptyState title={query.status ? "لا توجد عقود بهذه الحالة" : "لا توجد عقود بعد"} />;
+    return (
+      <EmptyState
+        icon={FileText}
+        title={query.status ? "لا توجد عقود بهذه الحالة" : "لا توجد عقود بعد"}
+        action={
+          isRep ? (
+            <Link href="/reservations?status=active" className={buttonClass.primary}>
+              <Timer />
+              حجوزاتي النشطة
+            </Link>
+          ) : query.status ? (
+            <Link href="/contracts" className={buttonClass.secondary}>
+              عرض كل العقود
+            </Link>
+          ) : null
+        }
+      >
+        {isRep
+          ? "المسودة تُنشأ من صفحة حجز نشط، ثم يعتمدها المحاسب."
+          : "تظهر هنا مسودات المندوبين فور إنشائها، والعقود بعد اعتمادها."}
+      </EmptyState>
+    );
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-500">{result.total} عقد</p>
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[760px] text-right text-sm">
-          <thead className="bg-slate-50 text-slate-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">الوحدة</th>
-              <th className="px-4 py-3 font-medium">العميل</th>
-              {isRep ? null : <th className="px-4 py-3 font-medium">المندوب</th>}
-              <th className="px-4 py-3 font-medium">السعر النهائي</th>
-              <th className="px-4 py-3 font-medium">المتبقي</th>
-              <th className="px-4 py-3 font-medium">الحالة</th>
-              <th className="px-4 py-3 font-medium">أُنشئ</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {result.items.map((c) => (
-              <tr key={c.id}>
-                <td className="px-4 py-3">
-                  <Link href={`/contracts/${c.id}`} className="font-medium text-slate-900 hover:text-emerald-700">
-                    {c.unitLabel}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-slate-700">{c.clientName}</td>
-                {isRep ? null : <td className="px-4 py-3 text-slate-700">{c.repName}</td>}
-                <td className="whitespace-nowrap px-4 py-3 text-slate-900">{formatSar(c.finalPrice)}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-slate-700">{formatSar(c.finalPrice - c.paid)}</td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap items-center gap-1">
-                    <ContractStatusBadge status={c.status} />
-                    {c.status === "draft" && !c.reservationLive ? (
-                      <span className="text-xs text-amber-700">انتهى الحجز</span>
-                    ) : null}
-                  </div>
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-slate-700">{formatDateTime(c.createdAt)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ResultCount>{result.total} عقد</ResultCount>
+      <DataTable label="جدول العقود" className="md:min-w-[48rem]">
+        <THead>
+          <Th>الوحدة</Th>
+          <Th>العميل</Th>
+          {isRep ? null : <Th>المندوب</Th>}
+          <Th>السعر النهائي</Th>
+          <Th>المتبقي</Th>
+          <Th>الحالة</Th>
+          <Th>أُنشئ</Th>
+        </THead>
+        <TBody>
+          {result.items.map((c) => (
+            <Tr key={c.id}>
+              <Td primary>
+                <Link href={`/contracts/${c.id}`} className="font-bold text-ink hover:text-primary-700 hover:underline">
+                  {c.unitLabel}
+                </Link>
+              </Td>
+              <Td label="العميل" className="text-ink-muted">
+                {c.clientName}
+              </Td>
+              {isRep ? null : (
+                <Td label="المندوب" className="text-ink-muted">
+                  {c.repName}
+                </Td>
+              )}
+              <Td label="السعر النهائي" className="font-medium text-ink">
+                <Money amount={c.finalPrice} />
+              </Td>
+              <Td label="المتبقي" className="text-ink-muted">
+                <Money amount={c.finalPrice - c.paid} />
+              </Td>
+              <Td label="الحالة">
+                <div className="flex flex-wrap items-center gap-1.5 max-md:justify-end">
+                  <ContractStatusBadge status={c.status} />
+                  {c.status === "draft" && !c.reservationLive ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-warning">
+                      <TimerOff className="size-3.5" aria-hidden="true" />
+                      انتهى الحجز
+                    </span>
+                  ) : null}
+                </div>
+              </Td>
+              <Td label="أُنشئ" className="whitespace-nowrap text-ink-subtle">
+                {formatDateTime(c.createdAt)}
+              </Td>
+            </Tr>
+          ))}
+        </TBody>
+      </DataTable>
       <Pagination page={result.page} pageCount={result.pageCount} hrefFor={(page) => contractsHref(query, page)} />
     </div>
   );

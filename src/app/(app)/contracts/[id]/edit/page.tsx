@@ -19,7 +19,7 @@ export default async function EditContractPage({ params }: PageProps<"/contracts
   if (contract.status !== "draft" || !contract.reservationLive) redirect(`/contracts/${contract.id}`);
 
   return (
-    <div className="space-y-5">
+    <div className="max-w-4xl space-y-6">
       <PageHeader
         back={{ href: `/contracts/${contract.id}`, label: "العقد" }}
         title={`تعديل مسودة عقد الوحدة ${contract.unitLabel}`}

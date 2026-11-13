@@ -1,9 +1,10 @@
 "use client";
 
+import { CalendarDays, Save } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useActionState, useState } from "react";
 import { createDraftForm, updateDraftForm } from "@/app/actions/sales";
-import { FormField, FormMessage } from "@/components/form-field";
+import { FormActions, FormField, FormMessage, SubmitButton } from "@/components/form-field";
 import { buttonClass } from "@/components/ui";
 import { generateSchedule, MAX_INSTALLMENTS, scheduleProblem } from "@/domain/installments";
 import { formatLocalDate } from "@/lib/format";
@@ -61,7 +62,7 @@ export function ContractForm(props: ContractFormProps) {
       action={formAction}
       onChange={onChange}
       noValidate
-      className="space-y-5 rounded-xl border border-slate-200 bg-white p-5"
+      className="space-y-5 rounded-xl border border-line bg-surface p-5 shadow-xs sm:p-6"
     >
       <FormMessage message={state.message} />
       {props.mode === "create" ? (
@@ -70,7 +71,7 @@ export function ContractForm(props: ContractFormProps) {
         <input type="hidden" name="id" value={props.contractId} />
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-2">
         <FormField
           label="السعر النهائي (ر.س)"
           name="finalPrice"
@@ -113,26 +114,33 @@ export function ContractForm(props: ContractFormProps) {
         />
       </div>
 
-      <div aria-live="polite" className="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-700">
-        {preview ? (
-          <>
-            {preview.count} قسطًا شهريًا، من {formatLocalDate(preview.first.dueDate)} إلى{" "}
-            {formatLocalDate(preview.last.dueDate)}، قيمة القسط {formatSar(preview.last.amount)}
-            {preview.bumped > 0 ? `، وأول ${preview.bumped} منها بزيادة هللة واحدة ليطابق المجموع السعر النهائي` : ""}.
-          </>
-        ) : (
-          "أكمل الحقول لعرض ملخص جدول الأقساط."
-        )}
+      <div
+        aria-live="polite"
+        className="flex items-start gap-3 rounded-lg border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-primary-900"
+      >
+        <CalendarDays className="mt-0.5 size-4 shrink-0 text-primary-600" aria-hidden="true" />
+        <p>
+          {preview ? (
+            <>
+              {preview.count} قسطًا شهريًا، من {formatLocalDate(preview.first.dueDate)} إلى{" "}
+              {formatLocalDate(preview.last.dueDate)}، قيمة القسط{" "}
+              <span className="font-bold tabular-nums">{formatSar(preview.last.amount)}</span>
+              {preview.bumped > 0 ? `، وأول ${preview.bumped} منها بزيادة هللة واحدة ليطابق المجموع السعر النهائي` : ""}.
+            </>
+          ) : (
+            "أكمل الحقول لعرض ملخص جدول الأقساط."
+          )}
+        </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <button type="submit" disabled={isPending} className={buttonClass.primary}>
-          {isPending ? "جارٍ الحفظ…" : props.mode === "create" ? "حفظ المسودة" : "حفظ التعديلات"}
-        </button>
+      <FormActions>
+        <SubmitButton pending={isPending} pendingLabel="جارٍ الحفظ…" icon={<Save />}>
+          {props.mode === "create" ? "حفظ المسودة" : "حفظ التعديلات"}
+        </SubmitButton>
         <Link href={props.cancelHref} className={buttonClass.secondary}>
           إلغاء
         </Link>
-      </div>
+      </FormActions>
     </form>
   );
 }
