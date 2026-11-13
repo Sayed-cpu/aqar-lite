@@ -1,5 +1,8 @@
+import { ScrollText } from "lucide-react";
 import type { Metadata } from "next";
+import { DataTable, TBody, Td, Th, THead, Tr } from "@/components/data-table";
 import { Pagination } from "@/components/pagination";
+import { EmptyState, PageHeader } from "@/components/ui";
 import {
   AUDIT_ACTION_LABELS,
   AUDIT_METADATA_LABELS,
@@ -27,47 +30,47 @@ export default async function AuditPage({ searchParams }: PageProps<"/audit">) {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">سجل التدقيق</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {result.total} حدث في {session.companyName}. السجل للقراءة فقط ولا يمكن تعديله.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="سجل التدقيق"
+        description={`${result.total} حدث في ${session.companyName}. السجل للقراءة فقط ولا يمكن تعديله.`}
+      />
 
       {result.items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-          لا توجد أحداث مسجّلة في هذه الصفحة.
-        </div>
+        <EmptyState icon={ScrollText} title="لا توجد أحداث مسجّلة في هذه الصفحة">
+          تُسجَّل هنا محاولات الدخول وتغييرات الأسعار والاعتمادات والدفعات.
+        </EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="w-full min-w-[640px] text-right text-sm">
-            <thead className="bg-slate-50 text-slate-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">الوقت</th>
-                <th className="px-4 py-3 font-medium">الحدث</th>
-                <th className="px-4 py-3 font-medium">المستخدم</th>
-                <th className="px-4 py-3 font-medium">التفاصيل</th>
-                <th className="px-4 py-3 font-medium">IP</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {result.items.map((item) => (
-                <tr key={item.id} className="align-top">
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{formatDateTime(item.createdAt)}</td>
-                  <td className="px-4 py-3 font-medium text-slate-900">{AUDIT_ACTION_LABELS[item.action]}</td>
-                  <td className="px-4 py-3 text-slate-700">{item.actorName ?? "—"}</td>
-                  <td className="px-4 py-3 text-slate-600">
-                    <MetadataList metadata={item.metadata} />
-                  </td>
-                  <td className="px-4 py-3 text-slate-500" dir="ltr">
-                    {item.ip ?? "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable label="أحداث سجل التدقيق" className="md:min-w-[44rem]">
+          <THead>
+            <Th>الحدث</Th>
+            <Th>الوقت</Th>
+            <Th>المستخدم</Th>
+            <Th>التفاصيل</Th>
+            <Th>IP</Th>
+          </THead>
+          <TBody>
+            {result.items.map((item) => (
+              <Tr key={item.id} className="align-top">
+                <Td primary className="font-bold text-ink md:align-top">
+                  {AUDIT_ACTION_LABELS[item.action]}
+                </Td>
+                <Td label="الوقت" className="whitespace-nowrap text-ink-muted md:align-top">
+                  {formatDateTime(item.createdAt)}
+                </Td>
+                <Td label="المستخدم" className="text-ink-muted md:align-top">
+                  {item.actorName ?? "—"}
+                </Td>
+                <Td label="التفاصيل" className="text-ink-muted max-md:items-start md:align-top">
+                  <MetadataList metadata={item.metadata} />
+                </Td>
+                <Td label="IP" className="text-ink-subtle tabular-nums md:align-top">
+                  <span dir="ltr">{item.ip ?? "—"}</span>
+                </Td>
+              </Tr>
+            ))}
+          </TBody>
+        </DataTable>
       )}
 
       <Pagination page={result.page} pageCount={result.pageCount} hrefFor={hrefFor} />
@@ -97,10 +100,10 @@ function MetadataList({ metadata }: { metadata: AuditMetadata }) {
   const entries = Object.entries(metadata).sort(([a], [b]) => labelOrder(a) - labelOrder(b));
   if (entries.length === 0) return <span>—</span>;
   return (
-    <dl className="space-y-0.5">
+    <dl className="space-y-0.5 text-start">
       {entries.map(([key, value]) => (
         <div key={key} className="flex gap-1">
-          <dt className="text-slate-400">{AUDIT_METADATA_LABELS[key] ?? key}:</dt>
+          <dt className="shrink-0 text-ink-subtle">{AUDIT_METADATA_LABELS[key] ?? key}:</dt>
           <dd className="break-all">
             {metadataValue(key, value)}
           </dd>
