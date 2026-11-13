@@ -36,6 +36,19 @@ describe("company isolation in the application layer", () => {
     expect(page.total).toBe(companyA.length);
   });
 
+  it("shows a failed login on a company's user to that company's manager, through RLS", async () => {
+    const failedLogins = (items: { action: string; metadata: Record<string, unknown> }[]) =>
+      items.filter((item) => item.action === "auth.login_failed").map((item) => item.metadata.email);
+
+    // Read the way /audit reads it: the app role, with the policy applied.
+    const pageA = await listAuditLogs(ctxOf(f.managerA), { page: 1, pageSize: 50 });
+    const pageB = await listAuditLogs(ctxOf(f.managerB), { page: 1, pageSize: 50 });
+
+    expect(failedLogins(pageA.items)).toEqual([f.repA.email]);
+    // Company B sees neither A's attempt nor the one on an email matching nobody.
+    expect(failedLogins(pageB.items)).toEqual([]);
+  });
+
   it("ignores a companyId smuggled in through the query string", async () => {
     const query = auditListQuerySchema.parse({ page: "1", companyId: f.companyB.id });
     const page = await listAuditLogs(ctxOf(f.managerA), query);

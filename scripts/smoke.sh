@@ -16,11 +16,14 @@ fail() { echo "  FAIL  $1"; failures=$((failures + 1)); }
 expect() { # expect <description> <expected> <actual>
   if [ "$2" = "$3" ]; then pass "$1"; else fail "$1 (expected $2, got $3)"; fi
 }
+# A here-string, not a pipe: grep -q exits at the first match, and a writer
+# still feeding it a large page gets SIGPIPE, which pipefail reports as "not
+# found". That failed a real check, and it would have passed `lacks` on a hit.
 contains() { # contains <description> <haystack> <needle>
-  if printf '%s' "$2" | grep -qF -- "$3"; then pass "$1"; else fail "$1"; fi
+  if grep -qF -- "$3" <<<"$2"; then pass "$1"; else fail "$1"; fi
 }
 lacks() { # lacks <description> <haystack> <needle>
-  if printf '%s' "$2" | grep -qF -- "$3"; then fail "$1"; else pass "$1"; fi
+  if grep -qF -- "$3" <<<"$2"; then fail "$1"; else pass "$1"; fi
 }
 status() { curl -sS -o /dev/null -w '%{http_code}' "$@"; }
 page() { curl -sS -b "aqar_session=$1" "$BASE$2"; }

@@ -17,3 +17,11 @@ export class DomainError extends Error {
     this.name = "DomainError";
   }
 }
+
+/** The summary above a form whose fields were refused; each field says why. */
+export const CHECK_INPUT = "تحقق من البيانات المدخلة";
+
+/** A refusal about one field, shown beside it like a schema error. */
+export function fieldError(field: string, message: string): DomainError {
+  return new DomainError("VALIDATION", CHECK_INPUT, { [field]: [message] });
+}

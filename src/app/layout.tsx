@@ -1,9 +1,5 @@
-import type { Metadata } from "next";
-import "@fontsource/ibm-plex-sans-arabic/arabic-400.css";
-import "@fontsource/ibm-plex-sans-arabic/arabic-500.css";
-import "@fontsource/ibm-plex-sans-arabic/arabic-700.css";
-import "@fontsource/ibm-plex-sans-arabic/latin-400.css";
-import "@fontsource/ibm-plex-sans-arabic/latin-700.css";
+import type { Metadata, Viewport } from "next";
+import { plexArabic, plexLatin } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,10 +7,14 @@ export const metadata: Metadata = {
   description: "نظام بيع الوحدات العقارية بالتقسيط",
 };
 
+export const viewport: Viewport = {
+  themeColor: "#0a3326",
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ar" dir="rtl" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="ar" dir="rtl" className={`${plexArabic.variable} ${plexLatin.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }

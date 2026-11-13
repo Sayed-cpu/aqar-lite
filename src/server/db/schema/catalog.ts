@@ -82,6 +82,8 @@ export const clients = pgTable(
     // A rep cannot add the same phone twice; two reps may both know a person.
     unique("clients_owner_phone_key").on(t.companyId, t.ownerUserId, t.phone),
     unique("clients_id_company_id_key").on(t.id, t.companyId),
+    // Target for reservations: a rep reserves only for a client they own.
+    unique("clients_id_owner_company_key").on(t.id, t.ownerUserId, t.companyId),
     index("clients_company_owner_created_at_idx").on(t.companyId, t.ownerUserId, t.createdAt.desc()),
     check("clients_name_not_blank", sql`length(trim(${t.name})) > 0`),
     check("clients_phone_format", sql`${t.phone} ~ '^\\+?[0-9]{8,15}$'`),

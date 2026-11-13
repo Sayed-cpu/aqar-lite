@@ -1,8 +1,13 @@
+import { TableSkeleton } from "@/components/ui";
+
 export default function Loading() {
   return (
-    <div role="status" aria-live="polite" className="flex items-center gap-3 py-10 text-slate-500">
-      <span className="size-5 animate-spin rounded-full border-2 border-slate-300 border-t-emerald-700" />
-      جارٍ التحميل…
+    <div className="space-y-6">
+      <div aria-hidden="true" className="animate-pulse space-y-2">
+        <div className="h-7 w-40 rounded bg-line/70" />
+        <div className="h-4 w-72 max-w-full rounded bg-line/70" />
+      </div>
+      <TableSkeleton label="جارٍ تحميل سجل التدقيق…" rows={8} />
     </div>
   );
 }

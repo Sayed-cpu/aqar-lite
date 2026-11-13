@@ -23,7 +23,7 @@ export async function closeOwnerDb(): Promise<void> {
 /** TRUNCATE fires no row triggers, so the append-only audit log resets too. */
 export async function resetDatabase(): Promise<void> {
   await ownerDb().execute(
-    sql`truncate table clients, units, audit_logs, sessions, login_attempts, users, companies restart identity cascade`,
+    sql`truncate table payment_allocations, payments, installments, contracts, reservations, clients, units, audit_logs, sessions, login_attempts, users, companies restart identity cascade`,
   );
 }
 

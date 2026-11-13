@@ -1,10 +1,12 @@
+import { Search, SearchX, UserPlus, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Form from "next/form";
 import Link from "next/link";
 import { Suspense } from "react";
+import { DataTable, TBody, Td, Th, THead, Tr } from "@/components/data-table";
 import { FormField } from "@/components/form-field";
 import { Pagination } from "@/components/pagination";
-import { buttonClass, EmptyState, PageHeader, TableSkeleton } from "@/components/ui";
+import { buttonClass, EmptyState, PageHeader, ResultCount, TableSkeleton } from "@/components/ui";
 import { formatDateTime } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { type ClientListQuery, clientListQuerySchema } from "@/lib/schemas/clients";
@@ -31,13 +33,14 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
   const key = clientsHref(query);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title={isRep ? "عملائي" : "العملاء"}
         description={isRep ? "العملاء الذين أضفتهم أنت فقط." : `كل عملاء ${session.companyName}، مع المندوب المسؤول.`}
         actions={
           canCreate ? (
             <Link href="/clients/new" className={buttonClass.primary}>
+              <UserPlus />
               إضافة عميل
             </Link>
           ) : null
@@ -45,11 +48,11 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
       />
 
       <Form
-        key={key}
+        key={`filters:${key}`}
         action="/clients"
         role="search"
         aria-label="البحث في العملاء"
-        className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4"
+        className="flex flex-wrap items-end gap-3 rounded-xl border border-line bg-surface p-4 shadow-xs sm:p-5"
       >
         <div className="min-w-56 flex-1">
           <FormField
@@ -62,6 +65,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
           />
         </div>
         <button type="submit" className={buttonClass.primary}>
+          <Search />
           بحث
         </button>
         {query.q ? (
@@ -71,7 +75,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
         ) : null}
       </Form>
 
-      <Suspense key={key} fallback={<TableSkeleton />}>
+      <Suspense key={`results:${key}`} fallback={<TableSkeleton label="جارٍ تحميل العملاء…" />}>
         <ClientResults ctx={tenantOf(session)} query={query} showOwner={!isRep} canCreate={canCreate} />
       </Suspense>
     </div>
@@ -86,55 +90,82 @@ async function ClientResults({ ctx, query, showOwner, canCreate }: ClientResults
   if (result.items.length === 0) {
     if (result.total > 0) {
       return (
-        <EmptyState title="لا يوجد عملاء في هذه الصفحة">
-          <Link href={clientsHref(query, 1)} className="text-emerald-700 hover:underline">
-            العودة إلى الصفحة الأولى
-          </Link>
-        </EmptyState>
+        <EmptyState
+          icon={SearchX}
+          title="لا يوجد عملاء في هذه الصفحة"
+          action={
+            <Link href={clientsHref(query, 1)} className={buttonClass.secondary}>
+              العودة إلى الصفحة الأولى
+            </Link>
+          }
+        />
       );
     }
     return query.q ? (
-      <EmptyState title="لا يوجد عملاء يطابقون البحث">
-        <Link href="/clients" className="text-emerald-700 hover:underline">
-          عرض كل العملاء
-        </Link>
+      <EmptyState
+        icon={SearchX}
+        title="لا يوجد عملاء يطابقون البحث"
+        action={
+          <Link href="/clients" className={buttonClass.secondary}>
+            عرض كل العملاء
+          </Link>
+        }
+      >
+        ابحث بجزء من الاسم، أو بأرقام الجوال كما كُتبت.
       </EmptyState>
     ) : (
-      <EmptyState title="لا يوجد عملاء بعد">{canCreate ? "أضف أول عميل من زر «إضافة عميل»." : null}</EmptyState>
+      <EmptyState
+        icon={Users}
+        title="لا يوجد عملاء بعد"
+        action={
+          canCreate ? (
+            <Link href="/clients/new" className={buttonClass.primary}>
+              <UserPlus />
+              أضف أول عميل
+            </Link>
+          ) : null
+        }
+      >
+        {canCreate
+          ? "العميل الذي تضيفه يُسجَّل باسمك، وتحجز له الوحدات من صفحاتها."
+          : "يضيف المندوبون عملاءهم، ويظهرون هنا مع اسم المندوب."}
+      </EmptyState>
     );
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-500">{result.total} عميل</p>
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[560px] text-right text-sm">
-          <thead className="bg-slate-50 text-slate-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">العميل</th>
-              <th className="px-4 py-3 font-medium">الجوال</th>
-              {showOwner ? <th className="px-4 py-3 font-medium">المندوب</th> : null}
-              <th className="px-4 py-3 font-medium">أُضيف في</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {result.items.map((client) => (
-              <tr key={client.id}>
-                <td className="px-4 py-3">
-                  <Link href={`/clients/${client.id}`} className="font-medium text-slate-900 hover:text-emerald-700">
-                    {client.name}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-slate-700" dir="ltr">
-                  {client.phone}
-                </td>
-                {showOwner ? <td className="px-4 py-3 text-slate-700">{client.ownerName}</td> : null}
-                <td className="whitespace-nowrap px-4 py-3 text-slate-500">{formatDateTime(client.createdAt)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ResultCount>{result.total} عميل</ResultCount>
+      <DataTable label="جدول العملاء" className="md:min-w-[36rem]">
+        <THead>
+          <Th>العميل</Th>
+          <Th>الجوال</Th>
+          {showOwner ? <Th>المندوب</Th> : null}
+          <Th>أُضيف في</Th>
+        </THead>
+        <TBody>
+          {result.items.map((client) => (
+            <Tr key={client.id}>
+              <Td primary>
+                <Link href={`/clients/${client.id}`} className="font-bold text-ink hover:text-primary-700 hover:underline">
+                  {client.name}
+                </Link>
+              </Td>
+              <Td label="الجوال" className="text-ink-muted tabular-nums">
+                <span dir="ltr">{client.phone}</span>
+              </Td>
+              {showOwner ? (
+                <Td label="المندوب" className="text-ink-muted">
+                  {client.ownerName}
+                </Td>
+              ) : null}
+              <Td label="أُضيف في" className="whitespace-nowrap text-ink-subtle">
+                {formatDateTime(client.createdAt)}
+              </Td>
+            </Tr>
+          ))}
+        </TBody>
+      </DataTable>
       <Pagination page={result.page} pageCount={result.pageCount} hrefFor={(page) => clientsHref(query, page)} />
     </div>
   );

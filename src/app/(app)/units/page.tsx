@@ -1,12 +1,14 @@
+import { Building, Pencil, Plus, SearchX, SlidersHorizontal } from "lucide-react";
 import type { Metadata } from "next";
 import Form from "next/form";
 import Link from "next/link";
 import { Suspense } from "react";
+import { UnitStatusBadge } from "@/components/badges";
+import { DataTable, TBody, Td, Th, THead, Tr } from "@/components/data-table";
 import { FormField, SelectField } from "@/components/form-field";
 import { Pagination } from "@/components/pagination";
-import { buttonClass, EmptyState, PageHeader, TableSkeleton } from "@/components/ui";
-import { UnitStatusBadge } from "@/components/unit-status-badge";
-import { formatSar, toSarString } from "@/lib/money";
+import { buttonClass, EmptyState, linkClass, Money, PageHeader, ResultCount, TableSkeleton } from "@/components/ui";
+import { toSarString } from "@/lib/money";
 import { can } from "@/lib/permissions";
 import { type UnitListQuery, unitFilterErrors, unitListQuerySchema } from "@/lib/schemas/units";
 import { formatArea, UNIT_SORT_LABELS, UNIT_SORTS, UNIT_STATUS_LABELS, UNIT_STATUSES, UNIT_TYPE_LABELS } from "@/lib/units";
@@ -50,13 +52,14 @@ export default async function UnitsPage({ searchParams }: PageProps<"/units">) {
   const key = [unitsHref(query), asText(raw.minPrice), asText(raw.maxPrice)].join("|");
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="الوحدات"
-        description={`وحدات ${session.companyName}`}
+        description={`وحدات ${session.companyName}: الحالة والسعر والمساحة.`}
         actions={
           canCreate ? (
             <Link href="/units/new" className={buttonClass.primary}>
+              <Plus />
               إضافة وحدة
             </Link>
           ) : null
@@ -64,50 +67,56 @@ export default async function UnitsPage({ searchParams }: PageProps<"/units">) {
       />
 
       <Form
-        key={key}
+        key={`filters:${key}`}
         action="/units"
         aria-label="تصفية الوحدات"
-        className="grid items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5"
+        className="rounded-xl border border-line bg-surface p-4 shadow-xs sm:p-5"
       >
-        <SelectField
-          label="الحالة"
-          name="status"
-          id="filter-status"
-          defaultValue={query.status ?? ""}
-          options={STATUS_OPTIONS}
-        />
-        <FormField
-          label="أقل سعر (ر.س)"
-          name="minPrice"
-          id="filter-min-price"
-          inputMode="decimal"
-          dir="ltr"
-          defaultValue={asText(raw.minPrice)}
-          errors={filterErrors.minPrice}
-        />
-        <FormField
-          label="أعلى سعر (ر.س)"
-          name="maxPrice"
-          id="filter-max-price"
-          inputMode="decimal"
-          dir="ltr"
-          defaultValue={asText(raw.maxPrice)}
-          errors={filterErrors.maxPrice}
-        />
-        <SelectField label="الترتيب" name="sort" id="filter-sort" defaultValue={query.sort} options={SORT_OPTIONS} />
-        <div className="flex gap-2 sm:col-span-2 lg:col-span-1 lg:pt-6">
-          <button type="submit" className={`${buttonClass.primary} flex-1`}>
-            تطبيق
-          </button>
-          {filtered || query.sort !== "newest" ? (
-            <Link href="/units" className={buttonClass.secondary}>
-              مسح
-            </Link>
-          ) : null}
+        <p className="mb-4 flex items-center gap-2 text-sm font-bold text-ink">
+          <SlidersHorizontal className="size-4 text-primary-600" aria-hidden="true" />
+          تصفية وترتيب
+        </p>
+        <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <SelectField
+            label="الحالة"
+            name="status"
+            id="filter-status"
+            defaultValue={query.status ?? ""}
+            options={STATUS_OPTIONS}
+          />
+          <FormField
+            label="أقل سعر (ر.س)"
+            name="minPrice"
+            id="filter-min-price"
+            inputMode="decimal"
+            dir="ltr"
+            defaultValue={asText(raw.minPrice)}
+            errors={filterErrors.minPrice}
+          />
+          <FormField
+            label="أعلى سعر (ر.س)"
+            name="maxPrice"
+            id="filter-max-price"
+            inputMode="decimal"
+            dir="ltr"
+            defaultValue={asText(raw.maxPrice)}
+            errors={filterErrors.maxPrice}
+          />
+          <SelectField label="الترتيب" name="sort" id="filter-sort" defaultValue={query.sort} options={SORT_OPTIONS} />
+          <div className="flex gap-2 sm:col-span-2 lg:col-span-1 lg:pt-7">
+            <button type="submit" className={`${buttonClass.primary} flex-1`}>
+              تطبيق
+            </button>
+            {filtered || query.sort !== "newest" ? (
+              <Link href="/units" className={buttonClass.secondary}>
+                مسح
+              </Link>
+            ) : null}
+          </div>
         </div>
       </Form>
 
-      <Suspense key={key} fallback={<TableSkeleton />}>
+      <Suspense key={`results:${key}`} fallback={<TableSkeleton label="جارٍ تحميل الوحدات…" />}>
         <UnitResults
           ctx={tenantOf(session)}
           query={query}
@@ -128,68 +137,100 @@ async function UnitResults({ ctx, query, filtered, canCreate, canEdit }: UnitRes
   if (result.items.length === 0) {
     if (result.total > 0) {
       return (
-        <EmptyState title="لا توجد وحدات في هذه الصفحة">
-          <Link href={unitsHref(query, 1)} className="text-emerald-700 hover:underline">
-            العودة إلى الصفحة الأولى
-          </Link>
-        </EmptyState>
+        <EmptyState
+          icon={SearchX}
+          title="لا توجد وحدات في هذه الصفحة"
+          action={
+            <Link href={unitsHref(query, 1)} className={buttonClass.secondary}>
+              العودة إلى الصفحة الأولى
+            </Link>
+          }
+        />
       );
     }
     return filtered ? (
-      <EmptyState title="لا توجد وحدات تطابق هذه الفلاتر">
-        <Link href="/units" className="text-emerald-700 hover:underline">
-          عرض كل الوحدات
-        </Link>
+      <EmptyState
+        icon={SearchX}
+        title="لا توجد وحدات تطابق هذه الفلاتر"
+        action={
+          <Link href="/units" className={buttonClass.secondary}>
+            عرض كل الوحدات
+          </Link>
+        }
+      >
+        جرّب نطاق سعر أوسع أو حالة أخرى.
       </EmptyState>
     ) : (
-      <EmptyState title="لا توجد وحدات بعد">{canCreate ? "أضف أول وحدة من زر «إضافة وحدة»." : null}</EmptyState>
+      <EmptyState
+        icon={Building}
+        title="لا توجد وحدات بعد"
+        action={
+          canCreate ? (
+            <Link href="/units/new" className={buttonClass.primary}>
+              <Plus />
+              أضف أول وحدة
+            </Link>
+          ) : null
+        }
+      >
+        {canCreate ? "تُضاف الوحدة بحالة «متاحة» ويمكن للمندوبين حجزها مباشرة." : "لم يُضف مدير الشركة أي وحدة حتى الآن."}
+      </EmptyState>
     );
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-500">{result.total} وحدة</p>
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[720px] text-right text-sm">
-          <thead className="bg-slate-50 text-slate-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">الوحدة</th>
-              <th className="px-4 py-3 font-medium">النوع</th>
-              <th className="px-4 py-3 font-medium">المساحة</th>
-              <th className="px-4 py-3 font-medium">الغرف</th>
-              <th className="px-4 py-3 font-medium">السعر</th>
-              <th className="px-4 py-3 font-medium">الحالة</th>
-              {canEdit ? <th className="px-4 py-3 font-medium">إجراءات</th> : null}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {result.items.map((unit) => (
-              <tr key={unit.id}>
-                <td className="px-4 py-3">
-                  <Link href={`/units/${unit.id}`} className="font-medium text-slate-900 hover:text-emerald-700">
-                    {unit.number}
+      <ResultCount>{result.total} وحدة</ResultCount>
+      <DataTable label="جدول الوحدات" className="md:min-w-[46rem]">
+        <THead>
+          <Th>الوحدة</Th>
+          <Th>النوع</Th>
+          <Th>المساحة</Th>
+          <Th>الغرف</Th>
+          <Th>السعر</Th>
+          <Th>الحالة</Th>
+          {canEdit ? (
+            <Th>
+              <span className="sr-only">إجراءات</span>
+            </Th>
+          ) : null}
+        </THead>
+        <TBody>
+          {result.items.map((unit) => (
+            <Tr key={unit.id}>
+              <Td primary>
+                <Link href={`/units/${unit.id}`} className="font-bold text-ink hover:text-primary-700 hover:underline">
+                  {unit.number}
+                </Link>
+                <div className="text-xs text-ink-subtle">{unit.project}</div>
+              </Td>
+              <Td label="النوع" className="text-ink-muted">
+                {UNIT_TYPE_LABELS[unit.type]}
+              </Td>
+              <Td label="المساحة" className="whitespace-nowrap text-ink-muted">
+                {formatArea(unit.areaSqm)}
+              </Td>
+              <Td label="الغرف" className="text-ink-muted tabular-nums">
+                {unit.rooms}
+              </Td>
+              <Td label="السعر" className="font-medium text-ink">
+                <Money amount={unit.priceHalalas} />
+              </Td>
+              <Td label="الحالة">
+                <UnitStatusBadge status={unit.status} />
+              </Td>
+              {canEdit ? (
+                <Td>
+                  <Link href={`/units/${unit.id}/edit`} className={`${linkClass} inline-flex items-center gap-1`}>
+                    <Pencil className="size-3.5" />
+                    تعديل<span className="sr-only"> الوحدة {unit.number}</span>
                   </Link>
-                  <div className="text-xs text-slate-500">{unit.project}</div>
-                </td>
-                <td className="px-4 py-3 text-slate-700">{UNIT_TYPE_LABELS[unit.type]}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-slate-700">{formatArea(unit.areaSqm)}</td>
-                <td className="px-4 py-3 text-slate-700">{unit.rooms}</td>
-                <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900">{formatSar(unit.priceHalalas)}</td>
-                <td className="px-4 py-3">
-                  <UnitStatusBadge status={unit.status} />
-                </td>
-                {canEdit ? (
-                  <td className="px-4 py-3">
-                    <Link href={`/units/${unit.id}/edit`} className="text-emerald-700 hover:underline">
-                      تعديل
-                    </Link>
-                  </td>
-                ) : null}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </Td>
+              ) : null}
+            </Tr>
+          ))}
+        </TBody>
+      </DataTable>
       <Pagination page={result.page} pageCount={result.pageCount} hrefFor={(page) => unitsHref(query, page)} />
     </div>
   );

@@ -20,10 +20,14 @@ export const AUDIT_METADATA_LABELS: Record<string, string> = {
   unit: "الوحدة",
   oldPrice: "السعر السابق",
   newPrice: "السعر الجديد",
+  client: "العميل",
+  finalPrice: "السعر النهائي",
+  amount: "المبلغ",
+  remaining: "المتبقي بعدها",
 };
 
 /** Metadata keys whose value is an exact SAR amount ("1250000.50"). */
-export const AUDIT_MONEY_KEYS: ReadonlySet<string> = new Set(["oldPrice", "newPrice"]);
+export const AUDIT_MONEY_KEYS: ReadonlySet<string> = new Set(["oldPrice", "newPrice", "finalPrice", "amount", "remaining"]);
 
 export const AUDIT_METADATA_VALUE_LABELS: Record<string, string> = {
   invalid_credentials: "بيانات دخول غير صحيحة",

@@ -1,9 +1,10 @@
 "use client";
 
+import { Save } from "lucide-react";
 import Link from "next/link";
 import { useActionState } from "react";
 import { createUnitForm, updateUnitForm } from "@/app/actions/units";
-import { FormField, FormMessage, SelectField } from "@/components/form-field";
+import { FormActions, FormField, FormMessage, SelectField, SubmitButton } from "@/components/form-field";
 import { buttonClass } from "@/components/ui";
 import type { FormState } from "@/lib/form-state";
 import { UNIT_TYPE_LABELS, UNIT_TYPES } from "@/lib/units";
@@ -38,11 +39,15 @@ export function UnitForm({ unitId, values: initial, priceLocked, cancelHref }: U
   const errors = state.fieldErrors ?? {};
 
   return (
-    <form action={formAction} noValidate className="space-y-5 rounded-xl border border-slate-200 bg-white p-5">
+    <form action={formAction} noValidate className="space-y-5 rounded-xl border border-line bg-surface p-5 shadow-xs sm:p-6">
       <FormMessage message={state.message} />
       {unitId ? <input type="hidden" name="id" value={unitId} /> : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <p className="text-xs text-ink-subtle">
+        الحقول المعلّمة بـ <span className="text-danger">*</span> مطلوبة.
+      </p>
+
+      <div className="grid gap-5 sm:grid-cols-2">
         <FormField
           label="المشروع"
           name="project"
@@ -99,14 +104,14 @@ export function UnitForm({ unitId, values: initial, priceLocked, cancelHref }: U
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <button type="submit" disabled={isPending} className={buttonClass.primary}>
-          {isPending ? "جارٍ الحفظ…" : unitId ? "حفظ التعديلات" : "إضافة الوحدة"}
-        </button>
+      <FormActions>
+        <SubmitButton pending={isPending} pendingLabel="جارٍ الحفظ…" icon={<Save />}>
+          {unitId ? "حفظ التعديلات" : "إضافة الوحدة"}
+        </SubmitButton>
         <Link href={cancelHref} className={buttonClass.secondary}>
           إلغاء
         </Link>
-      </div>
+      </FormActions>
     </form>
   );
 }

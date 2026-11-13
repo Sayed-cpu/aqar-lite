@@ -124,3 +124,15 @@ function duplicatePhoneOr(err: unknown): unknown {
     ? new DomainError("CONFLICT", DUPLICATE_PHONE, { phone: [DUPLICATE_PHONE] })
     : err;
 }
+
+/** A rep's own clients, for picking one to reserve a unit for. */
+export function listOwnClientOptions(ctx: TenantCtx): Promise<{ id: string; name: string; phone: string }[]> {
+  return withTenant(ctx, (tx) =>
+    tx
+      .select({ id: clients.id, name: clients.name, phone: clients.phone })
+      .from(clients)
+      .where(and(eq(clients.companyId, ctx.companyId), eq(clients.ownerUserId, ctx.userId)))
+      .orderBy(clients.name)
+      .limit(500),
+  );
+}

@@ -11,6 +11,7 @@ import { violatedUniqueConstraint } from "../db/errors";
 import { offsetOf, type Page, pageOf } from "../db/page";
 import { units } from "../db/schema";
 import { type TenantCtx, withTenant } from "../db/tenant";
+import { expireDueReservations } from "../reservations/expiry";
 
 export type Unit = {
   id: string;
@@ -48,9 +49,13 @@ const ORDER: Record<UnitSort, SQL[]> = {
 
 const DUPLICATE_NUMBER = "يوجد وحدة بهذا الرقم في المشروع نفسه";
 
-/** Every role reads every unit of its own company. Filtering happens in SQL. */
+/**
+ * Every role reads every unit of its own company. Filtering happens in SQL.
+ * Reservations whose time is up are ended first, so "available" is true now.
+ */
 export function listUnits(ctx: TenantCtx, query: UnitListQuery): Promise<Page<Unit>> {
   return withTenant(ctx, async (tx) => {
+    await expireDueReservations(tx);
     const where = and(
       eq(units.companyId, ctx.companyId),
       query.status ? eq(units.status, query.status) : undefined,
@@ -74,6 +79,7 @@ export function listUnits(ctx: TenantCtx, query: UnitListQuery): Promise<Page<Un
 /** Null for an id that does not exist or belongs to another company. */
 export function getUnit(ctx: TenantCtx, id: string): Promise<Unit | null> {
   return withTenant(ctx, async (tx) => {
+    await expireDueReservations(tx);
     const [unit] = await tx
       .select(columns)
       .from(units)
