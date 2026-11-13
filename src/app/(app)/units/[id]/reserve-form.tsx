@@ -1,9 +1,10 @@
 "use client";
 
+import { CalendarClock, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useActionState } from "react";
 import { reserveUnitForm } from "@/app/actions/sales";
-import { FormMessage, SelectField } from "@/components/form-field";
+import { FormMessage, SelectField, SubmitButton } from "@/components/form-field";
 import { buttonClass } from "@/components/ui";
 import type { FormState } from "@/lib/form-state";
 import { RESERVATION_HOURS } from "@/lib/sales";
@@ -20,13 +21,13 @@ export function ReserveForm({ unitId, clients }: ReserveFormProps) {
 
   if (clients.length === 0) {
     return (
-      <p className="text-sm text-slate-600">
-        لحجز الوحدة أضف عميلًا أولًا من{" "}
-        <Link href="/clients/new" className="text-emerald-700 hover:underline">
-          صفحة إضافة عميل
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-ink-muted">لحجز الوحدة أضف عميلًا أولًا؛ تُحجز الوحدة باسم أحد عملائك.</p>
+        <Link href="/clients/new" className={buttonClass.secondary}>
+          <UserPlus />
+          إضافة عميل
         </Link>
-        .
-      </p>
+      </div>
     );
   }
 
@@ -39,19 +40,21 @@ export function ReserveForm({ unitId, clients }: ReserveFormProps) {
     <form action={formAction} noValidate className="space-y-4">
       <FormMessage message={state.message} />
       <input type="hidden" name="unitId" value={unitId} />
-      <SelectField
-        key={selected}
-        label="العميل"
-        name="clientId"
-        defaultValue={selected}
-        options={options}
-        required
-        hint={`تُحجز الوحدة لهذا العميل ${RESERVATION_HOURS} ساعة، ثم تعود متاحة تلقائيًا إن لم يُعتمد عقدها.`}
-        errors={errors.clientId}
-      />
-      <button type="submit" disabled={isPending} className={buttonClass.primary}>
-        {isPending ? "جارٍ الحجز…" : "احجز الوحدة"}
-      </button>
+      <div className="max-w-md">
+        <SelectField
+          key={selected}
+          label="العميل"
+          name="clientId"
+          defaultValue={selected}
+          options={options}
+          required
+          hint={`تُحجز الوحدة لهذا العميل ${RESERVATION_HOURS} ساعة، ثم تعود متاحة تلقائيًا إن لم يُعتمد عقدها.`}
+          errors={errors.clientId}
+        />
+      </div>
+      <SubmitButton pending={isPending} pendingLabel="جارٍ الحجز…" icon={<CalendarClock />}>
+        احجز الوحدة
+      </SubmitButton>
     </form>
   );
 }

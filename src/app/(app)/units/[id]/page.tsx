@@ -1,10 +1,11 @@
+import { CalendarClock, Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { buttonClass, Detail, PageHeader, SuccessNotice } from "@/components/ui";
-import { UnitStatusBadge } from "@/components/unit-status-badge";
-import { formatDateTime, formatTimeLeft } from "@/lib/format";
-import { formatSar } from "@/lib/money";
+import { UnitStatusBadge } from "@/components/badges";
+import { InlineCountdown } from "@/components/countdown";
+import { buttonClass, Card, Detail, Money, Notice, PageHeader, SuccessNotice } from "@/components/ui";
+import { formatDateTime } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { formatArea, UNIT_STATUS_LABELS, UNIT_TYPE_LABELS } from "@/lib/units";
 import { requireUser, tenantOf } from "@/server/auth/current-user";
@@ -38,14 +39,16 @@ export default async function UnitPage({ params, searchParams }: PageProps<"/uni
   const savedMessage = typeof saved === "string" ? SAVED_MESSAGES[saved] : undefined;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         back={{ href: "/units", label: "الوحدات" }}
         title={`الوحدة ${unit.number}`}
+        badge={<UnitStatusBadge status={unit.status} />}
         description={unit.project}
         actions={
           can(session.role, "units:update") ? (
             <Link href={`/units/${unit.id}/edit`} className={buttonClass.secondary}>
+              <Pencil />
               تعديل
             </Link>
           ) : null
@@ -54,35 +57,42 @@ export default async function UnitPage({ params, searchParams }: PageProps<"/uni
 
       {savedMessage ? <SuccessNotice>{savedMessage}</SuccessNotice> : null}
 
-      <dl className="grid gap-5 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2 lg:grid-cols-3">
-        <Detail label="الحالة">
-          <UnitStatusBadge status={unit.status} />
-        </Detail>
-        <Detail label="السعر">{formatSar(unit.priceHalalas)}</Detail>
-        <Detail label="النوع">{UNIT_TYPE_LABELS[unit.type]}</Detail>
-        <Detail label="المساحة">{formatArea(unit.areaSqm)}</Detail>
-        <Detail label="عدد الغرف">{unit.rooms}</Detail>
-        <Detail label="آخر تحديث">{formatDateTime(unit.updatedAt)}</Detail>
-      </dl>
+      <Card>
+        <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+          <Detail label="السعر">
+            <Money amount={unit.priceHalalas} large className="text-xl font-bold text-primary-800" />
+          </Detail>
+          <Detail label="النوع">{UNIT_TYPE_LABELS[unit.type]}</Detail>
+          <Detail label="المساحة">{formatArea(unit.areaSqm)}</Detail>
+          <Detail label="عدد الغرف">
+            <span className="tabular-nums">{unit.rooms}</span>
+          </Detail>
+          <Detail label="آخر تحديث">{formatDateTime(unit.updatedAt)}</Detail>
+        </dl>
+      </Card>
 
       {canReserve && unit.status === "available" ? (
-        <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-semibold text-slate-900">حجز الوحدة</h2>
+        <Card title="حجز الوحدة" icon={CalendarClock}>
           <ReserveForm unitId={unit.id} clients={ownClients} />
-        </section>
+        </Card>
       ) : null}
 
       {reservation ? (
-        <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          محجوزة — يتبقى {formatTimeLeft(reservation.expiresAt)}.{" "}
-          <Link href={`/reservations/${reservation.id}`} className="font-medium underline">
-            تفاصيل الحجز
-          </Link>
-        </section>
+        <Notice tone="warning">
+          <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>
+              الوحدة محجوزة —{" "}
+              <InlineCountdown expiresAt={reservation.expiresAt.toISOString()} now={new Date().toISOString()} />.
+            </span>
+            <Link href={`/reservations/${reservation.id}`} className="font-bold underline underline-offset-4">
+              تفاصيل الحجز
+            </Link>
+          </span>
+        </Notice>
       ) : null}
 
       {unit.status !== "available" ? (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-ink-subtle">
           الوحدة {UNIT_STATUS_LABELS[unit.status]}، لذلك لا يمكن تعديل سعرها.
         </p>
       ) : null}

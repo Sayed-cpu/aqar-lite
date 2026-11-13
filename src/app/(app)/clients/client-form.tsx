@@ -1,9 +1,10 @@
 "use client";
 
+import { Save } from "lucide-react";
 import Link from "next/link";
 import { useActionState } from "react";
 import { createClientForm, updateClientForm } from "@/app/actions/clients";
-import { FormField, FormMessage, TextareaField } from "@/components/form-field";
+import { FormActions, FormField, FormMessage, SubmitButton, TextareaField } from "@/components/form-field";
 import { buttonClass } from "@/components/ui";
 import type { FormState } from "@/lib/form-state";
 import { CLIENT_NOTES_MAX } from "@/lib/schemas/clients";
@@ -24,11 +25,11 @@ export function ClientForm({ clientId, values: initial, cancelHref }: ClientForm
   const errors = state.fieldErrors ?? {};
 
   return (
-    <form action={formAction} noValidate className="space-y-5 rounded-xl border border-slate-200 bg-white p-5">
+    <form action={formAction} noValidate className="space-y-5 rounded-xl border border-line bg-surface p-5 shadow-xs sm:p-6">
       <FormMessage message={state.message} />
       {clientId ? <input type="hidden" name="id" value={clientId} /> : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-2">
         <FormField
           label="اسم العميل"
           name="name"
@@ -61,14 +62,14 @@ export function ClientForm({ clientId, values: initial, cancelHref }: ClientForm
         errors={errors.notes}
       />
 
-      <div className="flex flex-wrap gap-2">
-        <button type="submit" disabled={isPending} className={buttonClass.primary}>
-          {isPending ? "جارٍ الحفظ…" : clientId ? "حفظ التعديلات" : "إضافة العميل"}
-        </button>
+      <FormActions>
+        <SubmitButton pending={isPending} pendingLabel="جارٍ الحفظ…" icon={<Save />}>
+          {clientId ? "حفظ التعديلات" : "إضافة العميل"}
+        </SubmitButton>
         <Link href={cancelHref} className={buttonClass.secondary}>
           إلغاء
         </Link>
-      </div>
+      </FormActions>
     </form>
   );
 }

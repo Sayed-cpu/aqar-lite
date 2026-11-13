@@ -1,7 +1,8 @@
+import { Pencil, StickyNote } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { buttonClass, Detail, PageHeader, SuccessNotice } from "@/components/ui";
+import { buttonClass, Card, Detail, PageHeader, SuccessNotice } from "@/components/ui";
 import { formatDateTime } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { requireUser, tenantOf } from "@/server/auth/current-user";
@@ -27,13 +28,14 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
   const canEdit = can(session.role, "clients:update") && client.ownerUserId === session.userId;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         back={{ href: "/clients", label: session.role === "sales_rep" ? "عملائي" : "العملاء" }}
         title={client.name}
         actions={
           canEdit ? (
             <Link href={`/clients/${client.id}/edit`} className={buttonClass.secondary}>
+              <Pencil />
               تعديل
             </Link>
           ) : null
@@ -42,23 +44,26 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/c
 
       {savedMessage ? <SuccessNotice>{savedMessage}</SuccessNotice> : null}
 
-      <dl className="grid gap-5 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-3">
-        <Detail label="الجوال">
-          <span dir="ltr">{client.phone}</span>
-        </Detail>
-        <Detail label="المندوب المسؤول">{client.ownerName}</Detail>
-        <Detail label="أُضيف في">{formatDateTime(client.createdAt)}</Detail>
-      </dl>
+      <Card>
+        <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-3">
+          <Detail label="الجوال">
+            <span dir="ltr" className="tabular-nums">
+              {client.phone}
+            </span>
+          </Detail>
+          <Detail label="المندوب المسؤول">{client.ownerName}</Detail>
+          <Detail label="أُضيف في">{formatDateTime(client.createdAt)}</Detail>
+        </dl>
+      </Card>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="text-sm font-medium text-slate-500">ملاحظات</h2>
+      <Card title="ملاحظات" icon={StickyNote}>
         {/* Plain text: React escapes it, and nothing here parses markup. */}
         {client.notes ? (
-          <p className="mt-2 whitespace-pre-wrap break-words text-slate-800">{client.notes}</p>
+          <p className="whitespace-pre-wrap break-words text-ink">{client.notes}</p>
         ) : (
-          <p className="mt-2 text-slate-400">لا توجد ملاحظات.</p>
+          <p className="text-ink-subtle">لا توجد ملاحظات.</p>
         )}
-      </section>
+      </Card>
     </div>
   );
 }
