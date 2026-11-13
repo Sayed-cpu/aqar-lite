@@ -7,9 +7,11 @@ import { getCurrentSession } from "../auth/current-user";
 import type { Tx } from "../db/client";
 import { type TenantCtx, withTenant } from "../db/tenant";
 import { logger } from "../logger";
+import { getClientIp } from "../request-meta";
 import { DomainError } from "./errors";
 
-export type ActionContext = TenantCtx & { sessionId: string };
+/** The session's identity, plus the client IP for the audit log (or null). */
+export type ActionContext = TenantCtx & { sessionId: string; ip: string | null };
 
 type ActionOptions<S extends z.ZodType> = {
   /** For logs only. */
@@ -58,6 +60,7 @@ export function createAction<S extends z.ZodType, T>(
         companyId: session.companyId,
         role: session.role,
         sessionId: session.sessionId,
+        ip: await getClientIp(),
       };
       const data = await withTenant(ctx, (tx) => handler(parsed.data, ctx, tx));
       return { ok: true, data };

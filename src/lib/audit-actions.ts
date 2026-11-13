@@ -17,7 +17,13 @@ export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 export const AUDIT_METADATA_LABELS: Record<string, string> = {
   email: "البريد",
   reason: "السبب",
+  unit: "الوحدة",
+  oldPrice: "السعر السابق",
+  newPrice: "السعر الجديد",
 };
+
+/** Metadata keys whose value is an exact SAR amount ("1250000.50"). */
+export const AUDIT_MONEY_KEYS: ReadonlySet<string> = new Set(["oldPrice", "newPrice"]);
 
 export const AUDIT_METADATA_VALUE_LABELS: Record<string, string> = {
   invalid_credentials: "بيانات دخول غير صحيحة",
