@@ -24,5 +24,6 @@ export const INSTALLMENT_STATE_LABELS: Record<InstallmentState, string> = {
   paid: "مدفوع",
   partial: "مدفوع جزئيًا",
   overdue: "متأخر",
-  unpaid: "غير مدفوع",
+  // Nothing paid and not yet due: "غير مدفوع" would describe an overdue one too.
+  unpaid: "لم يحن موعده",
 };
