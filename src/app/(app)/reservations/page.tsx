@@ -1,9 +1,11 @@
+import { Building, Timer } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { ReservationStatusBadge } from "@/components/badges";
+import { DataTable, TBody, Td, Th, THead, Tr } from "@/components/data-table";
 import { Pagination } from "@/components/pagination";
-import { ReservationStatusBadge } from "@/components/sales-badges";
-import { EmptyState, PageHeader, TableSkeleton } from "@/components/ui";
+import { buttonClass, EmptyState, FilterTabs, PageHeader, ResultCount, TableSkeleton } from "@/components/ui";
 import { formatDateTime, formatTimeLeft } from "@/lib/format";
 import { RESERVATION_STATUS_LABELS, RESERVATION_STATUSES } from "@/lib/sales";
 import { type ReservationListQuery, reservationListQuerySchema } from "@/lib/schemas/sales";
@@ -21,6 +23,8 @@ function reservationsHref(query: ReservationListQuery, page = query.page): strin
   return search ? `/reservations?${search}` : "/reservations";
 }
 
+const HOUR = 3_600_000;
+
 export default async function ReservationsPage({ searchParams }: PageProps<"/reservations">) {
   const session = await requireUser();
   const query = reservationListQuerySchema.parse(await searchParams);
@@ -28,31 +32,22 @@ export default async function ReservationsPage({ searchParams }: PageProps<"/res
   const tabs = [undefined, ...RESERVATION_STATUSES] as const;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title={isRep ? "حجوزاتي" : "الحجوزات"}
         description={isRep ? "لحجز وحدة افتح صفحتها من قائمة الوحدات." : `حجوزات ${session.companyName}`}
       />
 
-      <nav aria-label="تصفية الحجوزات" className="flex flex-wrap gap-2 text-sm">
-        {tabs.map((status) => {
-          const active = query.status === status;
-          return (
-            <Link
-              key={status ?? "all"}
-              href={reservationsHref({ ...query, status }, 1)}
-              aria-current={active ? "page" : undefined}
-              className={`rounded-full border px-3 py-1 ${
-                active ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-300 bg-white text-slate-700"
-              }`}
-            >
-              {status ? RESERVATION_STATUS_LABELS[status] : "الكل"}
-            </Link>
-          );
-        })}
-      </nav>
+      <FilterTabs
+        label="تصفية الحجوزات"
+        tabs={tabs.map((status) => ({
+          href: reservationsHref({ ...query, status }, 1),
+          label: status ? RESERVATION_STATUS_LABELS[status] : "الكل",
+          current: query.status === status,
+        }))}
+      />
 
-      <Suspense key={reservationsHref(query)} fallback={<TableSkeleton />}>
+      <Suspense key={reservationsHref(query)} fallback={<TableSkeleton label="جارٍ تحميل الحجوزات…" />}>
         <ReservationResults ctx={tenantOf(session)} query={query} isRep={isRep} />
       </Suspense>
     </div>
@@ -61,56 +56,76 @@ export default async function ReservationsPage({ searchParams }: PageProps<"/res
 
 async function ReservationResults({ ctx, query, isRep }: { ctx: TenantCtx; query: ReservationListQuery; isRep: boolean }) {
   const result = await listReservations(ctx, query);
+  const now = new Date().getTime();
 
   if (result.items.length === 0) {
     return (
-      <EmptyState title={query.status ? "لا توجد حجوزات بهذه الحالة" : "لا توجد حجوزات بعد"}>
-        {isRep ? (
-          <Link href="/units?status=available" className="text-emerald-700 hover:underline">
-            تصفّح الوحدات المتاحة
-          </Link>
-        ) : null}
+      <EmptyState
+        icon={Timer}
+        title={query.status ? "لا توجد حجوزات بهذه الحالة" : "لا توجد حجوزات بعد"}
+        action={
+          isRep ? (
+            <Link href="/units?status=available" className={buttonClass.primary}>
+              <Building />
+              تصفّح الوحدات المتاحة
+            </Link>
+          ) : query.status ? (
+            <Link href="/reservations" className={buttonClass.secondary}>
+              عرض كل الحجوزات
+            </Link>
+          ) : null
+        }
+      >
+        {isRep ? "احجز وحدة متاحة لأحد عملائك، ثم أنشئ مسودة عقدها قبل انتهاء الحجز." : null}
       </EmptyState>
     );
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-500">{result.total} حجز</p>
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[720px] text-right text-sm">
-          <thead className="bg-slate-50 text-slate-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">الوحدة</th>
-              <th className="px-4 py-3 font-medium">العميل</th>
-              {isRep ? null : <th className="px-4 py-3 font-medium">المندوب</th>}
-              <th className="px-4 py-3 font-medium">بدأ</th>
-              <th className="px-4 py-3 font-medium">الحالة</th>
-              <th className="px-4 py-3 font-medium">المتبقي</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {result.items.map((r) => (
-              <tr key={r.id}>
-                <td className="px-4 py-3">
-                  <Link href={`/reservations/${r.id}`} className="font-medium text-slate-900 hover:text-emerald-700">
+      <ResultCount>{result.total} حجز</ResultCount>
+      <DataTable label="جدول الحجوزات" className="md:min-w-[44rem]">
+        <THead>
+          <Th>الوحدة</Th>
+          <Th>العميل</Th>
+          {isRep ? null : <Th>المندوب</Th>}
+          <Th>بدأ</Th>
+          <Th>الحالة</Th>
+          <Th>المتبقي</Th>
+        </THead>
+        <TBody>
+          {result.items.map((r) => {
+            const left = r.expiresAt.getTime() - now;
+            const urgent = r.status === "active" && left > 0 && left < 6 * HOUR;
+            return (
+              <Tr key={r.id}>
+                <Td primary>
+                  <Link href={`/reservations/${r.id}`} className="font-bold text-ink hover:text-primary-700 hover:underline">
                     {r.unitLabel}
                   </Link>
-                </td>
-                <td className="px-4 py-3 text-slate-700">{r.clientName}</td>
-                {isRep ? null : <td className="px-4 py-3 text-slate-700">{r.repName}</td>}
-                <td className="whitespace-nowrap px-4 py-3 text-slate-700">{formatDateTime(r.createdAt)}</td>
-                <td className="px-4 py-3">
+                </Td>
+                <Td label="العميل" className="text-ink-muted">
+                  {r.clientName}
+                </Td>
+                {isRep ? null : (
+                  <Td label="المندوب" className="text-ink-muted">
+                    {r.repName}
+                  </Td>
+                )}
+                <Td label="بدأ" className="whitespace-nowrap text-ink-subtle">
+                  {formatDateTime(r.createdAt)}
+                </Td>
+                <Td label="الحالة">
                   <ReservationStatusBadge status={r.status} />
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-slate-700">
+                </Td>
+                <Td label="المتبقي" className={`whitespace-nowrap ${urgent ? "font-bold text-danger" : "text-ink-muted"}`}>
                   {r.status === "active" ? formatTimeLeft(r.expiresAt) : "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </Td>
+              </Tr>
+            );
+          })}
+        </TBody>
+      </DataTable>
       <Pagination page={result.page} pageCount={result.pageCount} hrefFor={(page) => reservationsHref(query, page)} />
     </div>
   );

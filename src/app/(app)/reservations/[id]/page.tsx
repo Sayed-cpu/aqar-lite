@@ -1,9 +1,11 @@
+import { FilePen, FileText } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ReservationStatusBadge } from "@/components/sales-badges";
-import { buttonClass, Detail, PageHeader, SuccessNotice } from "@/components/ui";
-import { formatDateTime, formatTimeLeft } from "@/lib/format";
+import { ReservationStatusBadge } from "@/components/badges";
+import { ReservationCountdown } from "@/components/countdown";
+import { buttonClass, Card, Detail, linkClass, Notice, PageHeader, SuccessNotice } from "@/components/ui";
+import { formatDateTime } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { RESERVATION_HOURS } from "@/lib/sales";
 import { requireUser, tenantOf } from "@/server/auth/current-user";
@@ -19,22 +21,26 @@ export default async function ReservationPage({ params, searchParams }: PageProp
   if (!reservation) notFound();
 
   const { saved } = await searchParams;
-  const live = reservation.status === "active" && reservation.expiresAt > new Date();
+  const now = new Date();
+  const live = reservation.status === "active" && reservation.expiresAt > now;
   const canDraft = can(session.role, "contracts:create_draft") && reservation.reservedBy === session.userId;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         back={{ href: "/reservations", label: "الحجوزات" }}
         title={`حجز الوحدة ${reservation.unitLabel}`}
+        badge={<ReservationStatusBadge status={reservation.status} />}
         description={`للعميل ${reservation.clientName}`}
         actions={
           reservation.contractId ? (
             <Link href={`/contracts/${reservation.contractId}`} className={buttonClass.secondary}>
+              <FileText />
               عرض العقد
             </Link>
           ) : canDraft && live ? (
             <Link href={`/reservations/${reservation.id}/contract/new`} className={buttonClass.primary}>
+              <FilePen />
               إنشاء مسودة عقد
             </Link>
           ) : null
@@ -47,25 +53,33 @@ export default async function ReservationPage({ params, searchParams }: PageProp
         </SuccessNotice>
       ) : null}
 
-      <dl className="grid gap-5 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2 lg:grid-cols-3">
-        <Detail label="الحالة">
-          <ReservationStatusBadge status={reservation.status} />
-        </Detail>
-        <Detail label="الوقت المتبقي">{live ? formatTimeLeft(reservation.expiresAt) : "—"}</Detail>
-        <Detail label="المندوب">{reservation.repName}</Detail>
-        <Detail label="بدأ في">{formatDateTime(reservation.createdAt)}</Detail>
-        <Detail label="ينتهي في">{formatDateTime(reservation.expiresAt)}</Detail>
-        <Detail label="الوحدة">
-          <Link href={`/units/${reservation.unitId}`} className="text-emerald-700 hover:underline">
-            {reservation.unitLabel}
-          </Link>
-        </Detail>
-      </dl>
+      {live ? (
+        <ReservationCountdown
+          expiresAt={reservation.expiresAt.toISOString()}
+          now={now.toISOString()}
+          totalHours={RESERVATION_HOURS}
+        />
+      ) : null}
+
+      <Card>
+        <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+          <Detail label="الوحدة">
+            <Link href={`/units/${reservation.unitId}`} className={linkClass}>
+              {reservation.unitLabel}
+            </Link>
+          </Detail>
+          <Detail label="العميل">{reservation.clientName}</Detail>
+          <Detail label="المندوب">{reservation.repName}</Detail>
+          <Detail label="بدأ في">{formatDateTime(reservation.createdAt)}</Detail>
+          <Detail label="ينتهي في">{formatDateTime(reservation.expiresAt)}</Detail>
+          <Detail label="المدة">{RESERVATION_HOURS} ساعة</Detail>
+        </dl>
+      </Card>
 
       {reservation.status === "expired" ? (
-        <p className="text-sm text-slate-500">انتهت مدة الحجز فعادت الوحدة متاحة. يلزم حجز جديد لإنشاء عقد.</p>
+        <Notice tone="info">انتهت مدة الحجز فعادت الوحدة متاحة. يلزم حجز جديد لإنشاء عقد.</Notice>
       ) : reservation.contractId && live ? (
-        <p className="text-sm text-slate-500">مسودة العقد بانتظار اعتماد المحاسب قبل انتهاء الحجز.</p>
+        <Notice tone="info">مسودة العقد بانتظار اعتماد المحاسب قبل انتهاء الحجز.</Notice>
       ) : null}
     </div>
   );

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { ContractForm } from "@/app/(app)/contracts/contract-form";
+import { InlineCountdown } from "@/components/countdown";
 import { PageHeader } from "@/components/ui";
 import { minimumFinalPrice } from "@/domain/contracts";
 import { todayIn } from "@/domain/dates";
-import { formatTimeLeft } from "@/lib/format";
 import { formatSar, toSarString } from "@/lib/money";
 import { requirePermission, tenantOf } from "@/server/auth/current-user";
 import { getReservation } from "@/server/reservations/reservations.service";
@@ -30,11 +30,16 @@ export default async function NewContractPage({ params }: PageProps<"/reservatio
   const priceRange = `بين ${formatSar(minimumFinalPrice(listPrice))} و${formatSar(listPrice)} (خصم 5% على الأكثر)`;
 
   return (
-    <div className="space-y-5">
+    <div className="max-w-4xl space-y-6">
       <PageHeader
         back={{ href: `/reservations/${reservation.id}`, label: "الحجز" }}
         title={`مسودة عقد الوحدة ${reservation.unitLabel}`}
-        description={`للعميل ${reservation.clientName} — سعر الوحدة ${formatSar(listPrice)} — يتبقى على الحجز ${formatTimeLeft(reservation.expiresAt)}`}
+        description={
+          <>
+            للعميل {reservation.clientName} — سعر الوحدة <span className="tabular-nums">{formatSar(listPrice)}</span> — الحجز:{" "}
+            <InlineCountdown expiresAt={reservation.expiresAt.toISOString()} now={new Date().toISOString()} />
+          </>
+        }
       />
       <ContractForm
         mode="create"
