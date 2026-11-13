@@ -23,6 +23,23 @@ export default async function HomePage() {
       visible: true,
     },
     {
+      href: "/reservations",
+      title: isRep ? "حجوزاتي" : "الحجوزات",
+      description: isRep
+        ? "حجز وحدة لعميلك 72 ساعة، ثم إنشاء مسودة العقد"
+        : "الوحدات المحجوزة والوقت المتبقي على كل حجز",
+      visible: true,
+    },
+    {
+      href: "/contracts",
+      title: isRep ? "عقودي" : "العقود",
+      description:
+        user.role === "accountant"
+          ? "اعتماد المسودات وتسجيل الدفعات ومتابعة الأقساط"
+          : "العقود وجداول أقساطها والمتبقي على كل عقد",
+      visible: true,
+    },
+    {
       href: "/audit",
       title: "سجل التدقيق",
       description: "محاولات الدخول وتغييرات الأسعار والاعتمادات والدفعات",

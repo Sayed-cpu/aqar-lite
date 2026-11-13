@@ -3,13 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { buttonClass, Detail, PageHeader, SuccessNotice } from "@/components/ui";
 import { UnitStatusBadge } from "@/components/unit-status-badge";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatTimeLeft } from "@/lib/format";
 import { formatSar } from "@/lib/money";
 import { can } from "@/lib/permissions";
 import { formatArea, UNIT_STATUS_LABELS, UNIT_TYPE_LABELS } from "@/lib/units";
 import { requireUser, tenantOf } from "@/server/auth/current-user";
+import { listOwnClientOptions } from "@/server/clients/clients.service";
+import { activeReservationOf } from "@/server/reservations/reservations.service";
 import { uuidOrNotFound } from "@/server/route-params";
 import { getUnit } from "@/server/units/units.service";
+import { ReserveForm } from "./reserve-form";
 
 export const metadata: Metadata = { title: "تفاصيل الوحدة — عقار لايت" };
 
@@ -24,6 +27,12 @@ export default async function UnitPage({ params, searchParams }: PageProps<"/uni
   // Another company's unit is answered exactly like one that does not exist.
   const unit = await getUnit(tenantOf(session), id);
   if (!unit) notFound();
+
+  const ctx = tenantOf(session);
+  const canReserve = can(session.role, "reservations:create");
+  // The reservation the viewer may see: a rep sees only their own.
+  const reservation = unit.status === "reserved" ? await activeReservationOf(ctx, unit.id) : null;
+  const ownClients = canReserve && unit.status === "available" ? await listOwnClientOptions(ctx) : [];
 
   const { saved } = await searchParams;
   const savedMessage = typeof saved === "string" ? SAVED_MESSAGES[saved] : undefined;
@@ -55,6 +64,22 @@ export default async function UnitPage({ params, searchParams }: PageProps<"/uni
         <Detail label="عدد الغرف">{unit.rooms}</Detail>
         <Detail label="آخر تحديث">{formatDateTime(unit.updatedAt)}</Detail>
       </dl>
+
+      {canReserve && unit.status === "available" ? (
+        <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-5">
+          <h2 className="font-semibold text-slate-900">حجز الوحدة</h2>
+          <ReserveForm unitId={unit.id} clients={ownClients} />
+        </section>
+      ) : null}
+
+      {reservation ? (
+        <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          محجوزة — يتبقى {formatTimeLeft(reservation.expiresAt)}.{" "}
+          <Link href={`/reservations/${reservation.id}`} className="font-medium underline">
+            تفاصيل الحجز
+          </Link>
+        </section>
+      ) : null}
 
       {unit.status !== "available" ? (
         <p className="text-sm text-slate-500">

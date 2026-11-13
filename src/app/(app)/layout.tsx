@@ -13,6 +13,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     { href: "/", label: "الرئيسية", visible: true },
     { href: "/units", label: "الوحدات", visible: true },
     { href: "/clients", label: user.role === "sales_rep" ? "عملائي" : "العملاء", visible: true },
+    { href: "/reservations", label: user.role === "sales_rep" ? "حجوزاتي" : "الحجوزات", visible: true },
+    { href: "/contracts", label: user.role === "sales_rep" ? "عقودي" : "العقود", visible: true },
     { href: "/audit", label: "سجل التدقيق", visible: can(user.role, "audit:read") },
   ] as const;
 

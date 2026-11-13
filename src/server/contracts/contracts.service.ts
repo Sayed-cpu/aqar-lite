@@ -14,7 +14,7 @@ import type {
   ContractTerms,
   ContractUpdateInput,
 } from "@/lib/schemas/sales";
-import { DomainError } from "../actions/errors";
+import { DomainError, fieldError } from "../actions/errors";
 import type { ActionContext } from "../actions/create-action";
 import { appendAudit } from "../audit/audit.service";
 import type { Tx } from "../db/client";
@@ -227,16 +227,16 @@ const APPROVED_IS_FINAL = "العقد معتمد ولا يمكن تعديله";
 function checkTerms(listPrice: Halalas, terms: ContractTerms): void {
   if (!isAllowedFinalPrice(listPrice, terms.finalPrice)) {
     const message = `السعر النهائي بين ${formatSar(minimumFinalPrice(listPrice))} و${formatSar(listPrice)} (خصم 5% على الأكثر)`;
-    throw new DomainError("VALIDATION", message, { finalPrice: [message] });
+    throw fieldError("finalPrice", message);
   }
   const problem = scheduleProblem({ ...terms });
   if (problem === "installments_smaller_than_a_halala") {
     const message = "عدد الأقساط أكبر من المبلغ المتبقي بالهللة";
-    throw new DomainError("VALIDATION", message, { installmentCount: [message] });
+    throw fieldError("installmentCount", message);
   }
   if (problem === "down_payment_not_below_price" || problem === "down_payment_negative") {
     const message = "الدفعة الأولى يجب أن تكون أقل من السعر النهائي";
-    throw new DomainError("VALIDATION", message, { downPayment: [message] });
+    throw fieldError("downPayment", message);
   }
   if (problem) throw new DomainError("VALIDATION", "تحقق من شروط العقد");
 }

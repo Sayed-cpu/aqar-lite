@@ -3,7 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { allocatePayment, remainingOf } from "@/domain/payments";
 import { formatSar, toSarString } from "@/lib/money";
 import type { RecordPaymentInput } from "@/lib/schemas/sales";
-import { DomainError } from "../actions/errors";
+import { DomainError, fieldError } from "../actions/errors";
 import type { ActionContext } from "../actions/create-action";
 import { appendAudit } from "../audit/audit.service";
 import { loadSchedule } from "../contracts/contracts.service";
@@ -58,7 +58,7 @@ export async function recordPayment(input: RecordPaymentInput, ctx: ActionContex
       allocation.remaining === 0n
         ? "العقد مسدَّد بالكامل"
         : `المبلغ أكبر من المتبقي على العقد (${formatSar(allocation.remaining)})`;
-    throw new DomainError("VALIDATION", message, { amount: [message] });
+    throw fieldError("amount", message);
   }
 
   let paymentId: string;

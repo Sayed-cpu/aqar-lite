@@ -2,7 +2,7 @@ import "server-only";
 import { and, desc, eq, type SQL, sql } from "drizzle-orm";
 import { RESERVATION_HOURS, type ReservationStatus } from "@/lib/sales";
 import type { ReservationListQuery, ReserveUnitInput } from "@/lib/schemas/sales";
-import { DomainError } from "../actions/errors";
+import { DomainError, fieldError } from "../actions/errors";
 import type { ActionContext } from "../actions/create-action";
 import type { Tx } from "../db/client";
 import { violatedUniqueConstraint } from "../db/errors";
@@ -138,7 +138,7 @@ export async function reserveUnit(input: ReserveUnitInput, ctx: ActionContext, t
     );
   if (!client) {
     const message = "اختر أحد عملائك";
-    throw new DomainError("VALIDATION", message, { clientId: [message] });
+    throw fieldError("clientId", message);
   }
 
   try {
