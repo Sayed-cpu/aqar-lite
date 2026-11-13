@@ -1,18 +1,25 @@
 // Gregorian calendar and Latin digits, in Riyadh time, whatever the server's
-// own timezone is.
+// own timezone is. The month is spelled out — "13 نوفمبر 2026" — because
+// 13/11/2026 and 11/13/2026 are both plausible to someone reading quickly.
 const dateTimeFormatter = new Intl.DateTimeFormat("ar-SA-u-ca-gregory-nu-latn", {
   timeZone: "Asia/Riyadh",
-  dateStyle: "medium",
-  timeStyle: "short",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
 });
 
+/** "13 نوفمبر 2026 في 5:37 م" */
 export function formatDateTime(value: Date): string {
   return dateTimeFormatter.format(value);
 }
 
 const dateFormatter = new Intl.DateTimeFormat("ar-SA-u-ca-gregory-nu-latn", {
   timeZone: "UTC",
-  dateStyle: "medium",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
 });
 
 /** A calendar date ("YYYY-MM-DD"), shown as the same day wherever it is read. */
