@@ -367,10 +367,17 @@ CREATE FUNCTION payments_check_fully_allocated() RETURNS trigger
   SET search_path = pg_catalog, public
   AS $$
 DECLARE
-  target uuid := CASE WHEN TG_TABLE_NAME = 'payments' THEN NEW.id ELSE NEW.payment_id END;
+  target uuid;
   expected bigint;
   allocated bigint;
 BEGIN
+  -- Two branches, not one CASE: plpgsql resolves every field an expression
+  -- names, and a payments row has no payment_id.
+  IF TG_TABLE_NAME = 'payments' THEN
+    target := NEW.id;
+  ELSE
+    target := NEW.payment_id;
+  END IF;
   SELECT p.amount_halalas INTO expected FROM payments p WHERE p.id = target;
   SELECT coalesce(sum(a.amount_halalas), 0) INTO allocated FROM payment_allocations a WHERE a.payment_id = target;
   IF allocated IS DISTINCT FROM expected THEN
