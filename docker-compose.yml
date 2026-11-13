@@ -1,0 +1,53 @@
+# `docker compose up` on a clean clone, with no .env: every variable below has
+# a local-only default. Override them (see .env.example) for anything real.
+name: aqar-lite
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aqar
+      POSTGRES_USER: aqar_owner
+      POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD:-local-dev-owner-password}
+      # Read by docker/postgres/init to create the app's role.
+      APP_DB_PASSWORD: ${DB_APP_PASSWORD:-local-dev-app-password}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    # No published port: only the other services reach the database.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aqar_owner -d aqar"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    build:
+      context: .
+      target: migrator
+    environment:
+      MIGRATION_DATABASE_URL: postgres://aqar_owner:${DB_OWNER_PASSWORD:-local-dev-owner-password}@db:5432/aqar
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    environment:
+      # The least-privileged role; the owner's credentials never reach the app.
+      DATABASE_URL: postgres://aqar_app:${DB_APP_PASSWORD:-local-dev-app-password}@db:5432/aqar
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  db-data:
