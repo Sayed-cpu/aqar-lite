@@ -12,10 +12,12 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Pinned, not ubuntu-latest: when latest moved to 26.04, Playwright 1.57 could
+# no longer install Chromium there, and a runner change should not fail CI.
 jobs:
   check:
     name: lint · typecheck · test · audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
@@ -33,7 +35,7 @@ jobs:
 
   compose:
     name: docker compose up · smoke · e2e
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
