@@ -2,7 +2,8 @@
 
 /*
  * Design tokens: every colour the interface uses is defined here and nowhere
- * else.
+ * else. Tailwind's own palette is switched off, so a class like `bg-emerald-700`
+ * produces nothing — components can only reach for these names.
  *
  * Contrast (WCAG 2.x), checked for each pair the UI uses:
  *   ink / ink-muted / ink-subtle on canvas, surface, subtle ...... ≥ 5.3:1
@@ -12,6 +13,7 @@
  *   field (input borders) on surface ............................ 3.6:1 (non-text ≥ 3)
  */
 @theme {
+  --color-*: initial;
   --color-white: #ffffff;
 
   /* Brand: a deep, formal green. 700 for actions, 900 for the sidebar. */
